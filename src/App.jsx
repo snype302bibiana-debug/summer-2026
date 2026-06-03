@@ -718,7 +718,7 @@ function Roadmap({ kidId, progress, onBack, onStartSession }) {
     const k=dt.toISOString().slice(0,10);
     const di=Math.max(0,Math.floor((dt-SUMMER_START)/86400000));
     const pair=PAIRS[kidId][di%PAIRS[kidId].length];
-    const done=!!kp[k]?.both_done;
+    const done = k < todayKey() && !!kp[k]?.both_done;
     const isToday=k===todayKey();
     return {k,pair,done,isToday,dayLabel:dt.toLocaleDateString("en-US",{weekday:"short",month:"numeric",day:"numeric"})};
   });
