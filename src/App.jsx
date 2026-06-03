@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect } from "react";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const SUMMER_START = new Date("2026-06-02");
@@ -10,35 +10,112 @@ const SB_URL = "https://yeydhewezqyalejhrssp.supabase.co";
 const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlleWRoZXdlenF5YWxlamhyc3NwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAyODE0MTUsImV4cCI6MjA5NTg1NzQxNX0.AKH8akAcRl5plk81EUZFNFRkya-AaADh2g9lRJSQH_Q";
 
 const KIDS = {
-  madison: { id:"madison", name:"Madison", grade:"Entering 9th Grade", emoji:"✦", color:"#C2185B", light:"rgba(194,24,91,0.1)", dark:"#880E4F", font:"Georgia,serif", tagline:"Future fashion designer. Future author. Future everything.", track:"9th Grade — Standard Diploma Track", subjects:["English & Writing","Algebra 1","Biology","World History","Creative Writing"], world:"fashion design, writing books, and building a brand", focusSubject:"World History", focusReason:"Social Studies finished at 63. Historical thinking is the gap to close before 9th grade.", strengthSubject:"English & Writing", strengthNote:"ELA finished at 89. Strong foundation — keep building." },
-  garith:  { id:"garith",  name:'Garith "Bud"', grade:"Entering 8th Grade", emoji:"◈", color:"#1565C0", light:"rgba(21,101,192,0.1)", dark:"#0D47A1", font:"Georgia,serif", tagline:"Ball is life. Details matter. Systems win.", track:"8th Grade — Diploma Prep Track", subjects:["Pre-Algebra","Reading Comprehension","Science","Social Studies","Life Skills Math"], world:"basketball, video games, and music", focusSubject:"Pre-Algebra", focusReason:"Math went from 44 in Q1 to 87 in Q4. Lock it in this summer.", strengthSubject:"Reading Comprehension", strengthNote:"ELA finished at 80 and improved all year. Keep that momentum." },
-  demo:    { id:"demo",    name:"Demo Student", grade:"Sample Account", emoji:"◎", color:"#6D28D9", light:"rgba(109,40,217,0.1)", dark:"#4C1D95", font:"Georgia,serif", tagline:"This is a live demo — explore how the system works.", track:"Demo — Public Preview", subjects:["English & Writing","Algebra 1","Biology","World History","Creative Writing"], world:"creative work and learning", isDemo:true },
+  madison: {
+    id:"madison", name:"Madison", grade:"Entering 9th Grade", emoji:"✦",
+    color:"#C2185B", light:"rgba(194,24,91,0.1)", dark:"#880E4F",
+    font:"Georgia,serif",
+    tagline:"Future fashion designer. Future author. Future everything.",
+    track:"9th Grade — Standard Diploma Track",
+    subjects:["English & Writing","Algebra 1","Biology","World History","Creative Writing"],
+    world:"fashion design, writing books, and building a brand",
+    focusSubject:"World History",
+    focusReason:"Social Studies finished at 63. Historical thinking is the gap to close before 9th grade.",
+    strengthSubject:"English & Writing",
+    strengthNote:"ELA finished at 89. Strong foundation — keep building."
+  },
+  garith: {
+    id:"garith", name:'Garith "Bud"', grade:"Entering 8th Grade", emoji:"◈",
+    color:"#1565C0", light:"rgba(21,101,192,0.1)", dark:"#0D47A1",
+    font:"Georgia,serif",
+    tagline:"Ball is life. Details matter. Systems win.",
+    track:"8th Grade — Diploma Prep Track",
+    subjects:["Pre-Algebra","Reading Comprehension","Science","Social Studies","Life Skills Math"],
+    world:"basketball, video games, and music",
+    focusSubject:"Pre-Algebra",
+    focusReason:"Math went from 44 in Q1 to 87 in Q4. Lock it in this summer.",
+    strengthSubject:"Reading Comprehension",
+    strengthNote:"ELA finished at 80 and improved all year. Keep that momentum."
+  },
+  demo: {
+    id:"demo", name:"Demo Student", grade:"Sample Account", emoji:"◎",
+    color:"#6D28D9", light:"rgba(109,40,217,0.1)", dark:"#4C1D95",
+    font:"Georgia,serif",
+    tagline:"This is a live demo — explore how the system works.",
+    track:"Demo — Public Preview",
+    subjects:["English & Writing","Algebra 1","Biology","World History","Creative Writing"],
+    world:"creative work and learning", isDemo:true
+  },
 };
 
 const PAIRS = {
-  madison: [["World History","Algebra 1"],["World History","Biology"],["World History","Creative Writing"],["English & Writing","World History"],["World History","Algebra 1"],["Biology","World History"],["English & Writing","World History"]],
-  garith:  [["Pre-Algebra","Reading Comprehension"],["Pre-Algebra","Science"],["Pre-Algebra","Social Studies"],["Pre-Algebra","Reading Comprehension"],["Pre-Algebra","Science"],["Life Skills Math","Reading Comprehension"],["Pre-Algebra","Social Studies"]],
-  demo:    [["English & Writing","Algebra 1"],["Biology","World History"],["Creative Writing","Algebra 1"],["English & Writing","Biology"],["World History","Creative Writing"],["Algebra 1","Biology"],["English & Writing","World History"]],
+  madison: [
+    ["World History","Algebra 1"],["World History","Biology"],["World History","Creative Writing"],
+    ["English & Writing","World History"],["World History","Algebra 1"],
+    ["Biology","World History"],["English & Writing","World History"]
+  ],
+  garith: [
+    ["Pre-Algebra","Reading Comprehension"],["Pre-Algebra","Science"],
+    ["Pre-Algebra","Social Studies"],["Pre-Algebra","Reading Comprehension"],
+    ["Pre-Algebra","Science"],["Life Skills Math","Reading Comprehension"],
+    ["Pre-Algebra","Social Studies"]
+  ],
+  demo: [
+    ["English & Writing","Algebra 1"],["Biology","World History"],["Creative Writing","Algebra 1"],
+    ["English & Writing","Biology"],["World History","Creative Writing"],
+    ["Algebra 1","Biology"],["English & Writing","World History"]
+  ],
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-function todayKey() { return new Date().toISOString().slice(0,10); }
-function yestKey()  { const d=new Date(); d.setDate(d.getDate()-1); return d.toISOString().slice(0,10); }
-function dayIdx()   { return Math.max(0,Math.floor((new Date()-SUMMER_START)/86400000)); }
-function weekNum()  { return Math.max(1,Math.floor(dayIdx()/7)+1); }
-function stageNum() { const d=dayIdx(); return d<14?1:d<28?2:3; }
-function stageName(s) { return s===1?"Orientation":s===2?"Foundation":"Application"; }
-function todayPair(id) { return PAIRS[id][dayIdx()%PAIRS[id].length]; }
-function getStreak(p) { let s=0,d=new Date(); d.setHours(0,0,0,0); while(true){const k=d.toISOString().slice(0,10);if(p?.[k]?.both_done){s++;d.setDate(d.getDate()-1);}else break;} return s; }
-function getLast14(p) { return Array.from({length:14},(_,i)=>{ const dt=new Date(); dt.setDate(dt.getDate()-(13-i)); const k=dt.toISOString().slice(0,10); return {k,done:!!p?.[k]?.both_done,today:k===todayKey(),day:dt.getDate(),data:p?.[k]}; }); }
-function pairForDate(kidId,dateStr) { const dt=new Date(dateStr); const di=Math.max(0,Math.floor((dt-SUMMER_START)/86400000)); return PAIRS[kidId][di%PAIRS[kidId].length]; }
-function stageForDate(dateStr) { const dt=new Date(dateStr); const di=Math.max(0,Math.floor((dt-SUMMER_START)/86400000)); return di<14?1:di<28?2:3; }
+function todayKey()  { return new Date().toISOString().slice(0,10); }
+function yestKey()   { const d=new Date(); d.setDate(d.getDate()-1); return d.toISOString().slice(0,10); }
+function dayIdx()    { return Math.max(0,Math.floor((new Date()-SUMMER_START)/86400000)); }
+function weekNum()   { return Math.max(1,Math.floor(dayIdx()/7)+1); }
+function stageNum()  { const d=dayIdx(); return d<14?1:d<28?2:3; }
+function stageName(s){ return s===1?"Orientation":s===2?"Foundation":"Application"; }
+function todayPair(id){ return PAIRS[id][dayIdx()%PAIRS[id].length]; }
+function pairForDate(kidId,dateStr){ const dt=new Date(dateStr); const di=Math.max(0,Math.floor((dt-SUMMER_START)/86400000)); return PAIRS[kidId][di%PAIRS[kidId].length]; }
+function stageForDate(dateStr){ const dt=new Date(dateStr); const di=Math.max(0,Math.floor((dt-SUMMER_START)/86400000)); return di<14?1:di<28?2:3; }
+
+function getStreak(p) {
+  let s=0,d=new Date(); d.setHours(0,0,0,0);
+  while(true){ const k=d.toISOString().slice(0,10); if(p?.[k]?.both_done){s++;d.setDate(d.getDate()-1);}else break; }
+  return s;
+}
+function getLast14(p) {
+  return Array.from({length:14},(_,i)=>{
+    const dt=new Date(); dt.setDate(dt.getDate()-(13-i));
+    const k=dt.toISOString().slice(0,10);
+    return {k,done:!!p?.[k]?.both_done,today:k===todayKey(),day:dt.getDate(),data:p?.[k]};
+  });
+}
+function getLastMonday() {
+  const d=new Date(); const day=d.getDay();
+  d.setDate(d.getDate()-(day===0?6:day-1)); d.setHours(0,0,0,0); return d;
+}
+function getPrevWeekRange() {
+  const mon=getLastMonday(); mon.setDate(mon.getDate()-7);
+  const sun=new Date(mon); sun.setDate(sun.getDate()+6);
+  return {start:mon,end:sun};
+}
+function dateRangeKeys(start,end) {
+  const keys=[]; const d=new Date(start);
+  while(d<=end){ keys.push(d.toISOString().slice(0,10)); d.setDate(d.getDate()+1); }
+  return keys;
+}
+function isTodayMonday() { return new Date().getDay()===1; }
 
 // ─── Supabase ─────────────────────────────────────────────────────────────────
 async function sbFetch(path, opts={}) {
   const res = await fetch(SB_URL+"/rest/v1"+path, {
     ...opts,
-    headers: { "Content-Type":"application/json", "apikey":SB_KEY, "Authorization":"Bearer "+SB_KEY, "Prefer":opts.prefer||"", ...(opts.headers||{}) }
+    headers: {
+      "Content-Type":"application/json",
+      "apikey":SB_KEY,
+      "Authorization":"Bearer "+SB_KEY,
+      "Prefer":opts.prefer||"",
+      ...(opts.headers||{})
+    }
   });
   const text = await res.text();
   return text ? JSON.parse(text) : null;
@@ -59,7 +136,7 @@ async function loadProgress() {
 }
 
 async function saveDay(kidId, dateStr, data) {
-  if (kidId === "demo") return;
+  if (kidId==="demo") return;
   try {
     await sbFetch("/progress", {
       method:"POST",
@@ -71,7 +148,7 @@ async function saveDay(kidId, dateStr, data) {
 }
 
 async function saveVerification(kidId, subject, question, answer, score) {
-  if (kidId === "demo") return;
+  if (kidId==="demo") return;
   try {
     await sbFetch("/verification", {
       method:"POST",
@@ -81,10 +158,19 @@ async function saveVerification(kidId, subject, question, answer, score) {
   } catch(e) { console.warn("Verification save failed:",e); }
 }
 
+// ─── Polling Sync (30-second refresh) ──────────────────────────────────────────
+function usePollingSync(onRefresh) {
+  useEffect(() => {
+    const interval = setInterval(() => { onRefresh(); }, 30000);
+    return () => clearInterval(interval);
+  }, []);
+}
+
+
 function buildDemo() {
   const p={},now=new Date();
   for(let i=13;i>=1;i--){
-    const dt=new Date(now);dt.setDate(dt.getDate()-i);
+    const dt=new Date(now); dt.setDate(dt.getDate()-i);
     const k=dt.toISOString().slice(0,10);
     if(i%3!==0){
       const pr=PAIRS.demo[i%PAIRS.demo.length];
@@ -99,10 +185,14 @@ function buildDemo() {
 
 async function askClaude(prompt) {
   try {
-    const r=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:400,messages:[{role:"user",content:prompt}]})});
-    const d=await r.json();
+    const r = await fetch("https://api.anthropic.com/v1/messages",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:400,messages:[{role:"user",content:prompt}]})
+    });
+    const d = await r.json();
     return d.content?.map(b=>b.text||"").join("")||"";
-  } catch{return "";}
+  } catch { return ""; }
 }
 
 // ─── Curriculum ───────────────────────────────────────────────────────────────
@@ -167,18 +257,12 @@ const STEPS = [
   { id:"rate",    icon:"⭐", label:"Self-Rate",   color:"#8B5CF6", desc:"How confident do you feel about this concept right now?" },
 ];
 
-// ─── Splash Screen ────────────────────────────────────────────────────────────
+// ─── Splash ───────────────────────────────────────────────────────────────────
 function Splash({ onDone }) {
-  const [opacity, setOpacity] = useState(1);
-  useEffect(() => {
-    const t1 = setTimeout(() => setOpacity(0), 2200);
-    const t2 = setTimeout(onDone, 2700);
-    return () => { clearTimeout(t1); clearTimeout(t2); };
-  }, []);
   return (
-    <div style={{position:"fixed",inset:0,background:"linear-gradient(145deg,#3B0764 0%,#4C1D95 30%,#1E40AF 70%,#1565C0 100%)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",opacity,transition:"opacity 0.5s ease",fontFamily:"Georgia,serif",zIndex:999}}>
-      <div style={{position:"absolute",top:-80,right:-80,width:280,height:280,borderRadius:"50%",background:"rgba(255,255,255,0.04)"}} />
-      <div style={{position:"absolute",bottom:-60,left:-60,width:220,height:220,borderRadius:"50%",background:"rgba(255,255,255,0.04)"}} />
+    <div style={{position:"fixed",inset:0,background:"linear-gradient(145deg,#3B0764 0%,#4C1D95 30%,#1E40AF 70%,#1565C0 100%)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",fontFamily:"Georgia,serif",zIndex:999}}>
+      <div style={{position:"absolute",top:-80,right:-80,width:280,height:280,borderRadius:"50%",background:"rgba(255,255,255,0.04)"}}/>
+      <div style={{position:"absolute",bottom:-60,left:-60,width:220,height:220,borderRadius:"50%",background:"rgba(255,255,255,0.04)"}}/>
       <div style={{marginBottom:32}}>
         <svg width="90" height="70" viewBox="0 0 90 70">
           <polygon points="45,4 82,24 45,44 8,24" fill="white" opacity="0.95"/>
@@ -192,13 +276,28 @@ function Splash({ onDone }) {
       <p style={{fontSize:15,color:"rgba(255,255,255,0.7)",letterSpacing:2,margin:"0 0 10px",textTransform:"uppercase",fontFamily:"sans-serif"}}>Madison & Garith</p>
       <h1 style={{fontSize:48,fontWeight:700,color:"#fff",margin:"0 0 4px",letterSpacing:-1,lineHeight:1}}>Summer</h1>
       <h1 style={{fontSize:48,fontWeight:700,color:"#FCD34D",margin:"0 0 16px",letterSpacing:-1,lineHeight:1}}>2026</h1>
-      <div style={{width:40,height:2,background:"rgba(255,255,255,0.3)",borderRadius:99,marginBottom:12}} />
+      <div style={{width:40,height:2,background:"rgba(255,255,255,0.3)",borderRadius:99,marginBottom:12}}/>
       <p style={{fontSize:12,color:"rgba(255,255,255,0.45)",letterSpacing:3,fontFamily:"sans-serif",textTransform:"uppercase"}}>SC Diploma Prep</p>
       <p style={{fontSize:13,color:"rgba(252,211,77,0.7)",fontFamily:"Georgia,serif",fontStyle:"italic",marginTop:20,letterSpacing:1}}>love, Mom & Dad</p>
       <div style={{position:"absolute",bottom:60,display:"flex",gap:8}}>
-        {[0,1,2].map(i => <div key={i} style={{width:6,height:6,borderRadius:"50%",background:"rgba(255,255,255,0.4)",animation:"pulse 1.2s ease-in-out "+(i*0.2)+"s infinite"}} />)}
+        {[0,1,2].map(i=><div key={i} style={{width:6,height:6,borderRadius:"50%",background:"rgba(255,255,255,0.4)",animation:"pulse 1.2s ease-in-out "+(i*0.2)+"s infinite"}}/>)}
       </div>
-      <style>{"@keyframes pulse{0%,100%{opacity:0.3;transform:scale(0.8)}50%{opacity:1;transform:scale(1)}}"}</style>
+      <button onClick={onDone} style={{marginTop:36,background:"rgba(255,255,255,0.15)",border:"1.5px solid rgba(255,255,255,0.4)",borderRadius:99,padding:"14px 40px",fontSize:15,fontWeight:600,color:"#fff",cursor:"pointer",letterSpacing:1,fontFamily:"sans-serif"}}>Enter →</button>
+      
+    </div>
+  );
+}
+
+// ─── Sync Badge ───────────────────────────────────────────────────────────────
+function SyncBadge({ lastSync }) {
+  if (!lastSync) return null;
+  const secs = Math.floor((Date.now() - lastSync) / 1000);
+  const label = secs < 10 ? "Just synced" : secs < 60 ? secs+"s ago" : Math.floor(secs/60)+"m ago";
+  return (
+    <div style={{display:"inline-flex",alignItems:"center",gap:5,background:"rgba(34,197,94,0.1)",border:"1px solid rgba(34,197,94,0.3)",borderRadius:99,padding:"3px 10px"}}>
+      <div style={{width:6,height:6,borderRadius:"50%",background:"#22C55E",animation:"blink 2s ease infinite"}}/>
+      <span style={{fontSize:10,color:"#16A34A",fontFamily:"sans-serif",fontWeight:600}}>{label}</span>
+      
     </div>
   );
 }
@@ -206,8 +305,8 @@ function Splash({ onDone }) {
 // ─── Bottom Bar ───────────────────────────────────────────────────────────────
 function BottomBar({ onBack, label, sublabel, color }) {
   return (
-    <div style={{position:"sticky",bottom:0,background:"var(--color-background-primary)",borderTop:"1px solid var(--color-border-tertiary)",padding:"12px 20px 34px",display:"flex",alignItems:"center",gap:12,zIndex:50}}>
-      <button onClick={onBack} style={{display:"flex",alignItems:"center",gap:8,background:"var(--color-background-secondary)",border:"2px solid "+(color||"var(--color-border-secondary)"),borderRadius:50,padding:"12px 22px",fontSize:15,fontWeight:700,color:color||"var(--color-text-primary)",fontFamily:"sans-serif",cursor:"pointer",whiteSpace:"nowrap"}}>
+    <div style={{position:"sticky",bottom:0,background:"var(--color-background-primary)",boxShadow:"0 -4px 16px rgba(0,0,0,0.12)",borderTop:"1px solid var(--color-border-tertiary)",padding:"12px 20px 34px",display:"flex",alignItems:"center",gap:12,zIndex:50}}>
+      <button onClick={onBack} style={{display:"flex",alignItems:"center",gap:8,background:"#ffffff",border:"2px solid "+(color||"#64748b"),borderRadius:50,padding:"12px 22px",fontSize:15,fontWeight:700,color:color||"#1e293b",fontFamily:"sans-serif",cursor:"pointer",whiteSpace:"nowrap"}}>
         {"← Back"}
       </button>
       {label && <div style={{flex:1,minWidth:0}}>
@@ -223,7 +322,7 @@ function ConfirmModal({ subject, color, onYes, onNo }) {
   return (
     <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.6)",display:"flex",alignItems:"flex-end",justifyContent:"center",zIndex:200}}>
       <div style={{background:"var(--color-background-primary)",borderRadius:"20px 20px 0 0",padding:"28px 24px 44px",width:"100%",maxWidth:520}}>
-        <div style={{width:40,height:4,borderRadius:99,background:"var(--color-border-secondary)",margin:"0 auto 24px"}} />
+        <div style={{width:40,height:4,borderRadius:99,background:"var(--color-border-secondary)",margin:"0 auto 24px"}}/>
         <div style={{width:56,height:56,borderRadius:"50%",background:color,display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 16px"}}><span style={{fontSize:26,color:"#fff"}}>✓</span></div>
         <h3 style={{fontSize:20,fontWeight:700,color:"var(--color-text-primary)",textAlign:"center",margin:"0 0 8px",fontFamily:"Georgia,serif"}}>{"Mark "+subject+" complete?"}</h3>
         <p style={{fontSize:14,color:"var(--color-text-secondary)",textAlign:"center",fontFamily:"sans-serif",lineHeight:1.6,margin:"0 0 28px"}}>This saves your progress and starts your 5-step retention review.</p>
@@ -241,13 +340,12 @@ function VerificationCheck({ kidId, subject, lesson, onDone }) {
   const [fb, setFb] = useState(null);
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
-
   const question = lesson.recall;
 
   async function submit() {
     if (!input.trim()) return;
     setLoading(true);
-    const prompt = "You are verifying whether "+kid.name+" actually understood the lesson on "+subject+". The lesson title was: "+lesson.title+". You asked: "+question+". Their answer: "+input+". Score their understanding from 1 to 3: 1=did not understand, 2=partial understanding, 3=solid understanding. Respond with ONLY a JSON object: {score: number, feedback: string}. Feedback should be one encouraging sentence under 20 words.";
+    const prompt = "You are verifying whether "+kid.name+" actually understood the lesson on "+subject+". The lesson title was: "+lesson.title+". You asked: "+question+". Their answer: "+input+". Score their understanding from 1 to 3: 1=did not understand, 2=partial understanding, 3=solid understanding. Respond with ONLY a JSON object: {\"score\": number, \"feedback\": \"string\"}. Feedback should be one encouraging sentence under 20 words.";
     const text = await askClaude(prompt);
     try {
       const clean = text.replace(/```json|```/g,"").trim();
@@ -257,10 +355,9 @@ function VerificationCheck({ kidId, subject, lesson, onDone }) {
       setFb({ score, feedback: parsed.feedback || "Good effort — keep building." });
     } catch {
       await saveVerification(kidId, subject, question, input, 2);
-      setFb({ score: 2, feedback: "Good effort — keep building." });
+      setFb({ score:2, feedback:"Good effort — keep building." });
     }
-    setDone(true);
-    setLoading(false);
+    setDone(true); setLoading(false);
   }
 
   const scoreColors = ["","#EF4444","#F59E0B","#22C55E"];
@@ -279,7 +376,7 @@ function VerificationCheck({ kidId, subject, lesson, onDone }) {
       <p style={{fontSize:14,color:"var(--color-text-primary)",lineHeight:1.7,fontFamily:"sans-serif",margin:"0 0 12px",padding:"10px 12px",background:"rgba(99,102,241,0.08)",borderRadius:8}}>{question}</p>
       {!done ? (
         <div>
-          <textarea value={input} onChange={e=>setInput(e.target.value)} placeholder="Answer from memory..." rows={3} style={{width:"100%",boxSizing:"border-box",border:"1.5px solid var(--color-border-secondary)",borderRadius:8,padding:"8px 12px",fontSize:13,fontFamily:"sans-serif",resize:"none",outline:"none",background:"var(--color-background-primary)",color:"var(--color-text-primary)",marginBottom:8}} />
+          <textarea value={input} onChange={e=>setInput(e.target.value)} placeholder="Answer from memory..." rows={3} style={{width:"100%",boxSizing:"border-box",border:"1.5px solid var(--color-border-secondary)",borderRadius:8,padding:"8px 12px",fontSize:13,fontFamily:"sans-serif",resize:"none",outline:"none",background:"var(--color-background-primary)",color:"var(--color-text-primary)",marginBottom:8}}/>
           <button onClick={submit} disabled={loading||!input.trim()} style={{background:loading||!input.trim()?"var(--color-background-secondary)":"#6366F1",color:loading||!input.trim()?"var(--color-text-secondary)":"#fff",border:"none",borderRadius:8,padding:"10px 20px",fontSize:13,fontWeight:600,fontFamily:"sans-serif",cursor:loading||!input.trim()?"default":"pointer"}}>{loading?"Checking...":"Submit verification"}</button>
         </div>
       ) : (
@@ -313,10 +410,10 @@ function RetentionWalkthrough({ kidId, subject, lesson, onComplete }) {
   const isRating = current.id === "rate";
 
   function getPrompt() {
-    if (current.id === "recall") return lesson.recall;
-    if (current.id === "why") return lesson.why;
-    if (current.id === "connect") return lesson.connect[kidId] || lesson.connect.demo || "Connect what you just learned to something real in your own life.";
-    if (current.id === "teach") return lesson.teach;
+    if (current.id==="recall") return lesson.recall;
+    if (current.id==="why") return lesson.why;
+    if (current.id==="connect") return lesson.connect[kidId] || lesson.connect.demo || "Connect what you just learned to something real in your own life.";
+    if (current.id==="teach") return lesson.teach;
     return "";
   }
 
@@ -331,9 +428,8 @@ function RetentionWalkthrough({ kidId, subject, lesson, onComplete }) {
   }
 
   function advance() {
-    if (isLast) { onComplete({...answers, rate: {score: rating||2, ts: Date.now()}}); return; }
-    setStep(s => s+1);
-    setInput(""); setFb(null); setStepDone(false); setRating(null);
+    if (isLast) { onComplete({...answers, rate: {score:rating||2, ts:Date.now()}}); return; }
+    setStep(s=>s+1); setInput(""); setFb(null); setStepDone(false); setRating(null);
   }
 
   return (
@@ -344,12 +440,12 @@ function RetentionWalkthrough({ kidId, subject, lesson, onComplete }) {
           <p style={{fontSize:12,color:"rgba(255,255,255,0.8)",fontFamily:"sans-serif",margin:0}}>{"Step "+(step+1)+" of "+STEPS.length}</p>
         </div>
         <div style={{background:"rgba(255,255,255,0.25)",borderRadius:99,height:4,overflow:"hidden"}}>
-          <div style={{width:(((step+1)/STEPS.length)*100)+"%",height:"100%",background:"#fff",borderRadius:99,transition:"width 0.4s"}} />
+          <div style={{width:(((step+1)/STEPS.length)*100)+"%",height:"100%",background:"#fff",borderRadius:99,transition:"width 0.4s"}}/>
         </div>
       </div>
       <div style={{flex:1,overflowY:"auto",padding:"20px 16px 20px"}}>
         <div style={{display:"flex",gap:8,marginBottom:20,justifyContent:"center"}}>
-          {STEPS.map((s,i) => (
+          {STEPS.map((s,i)=>(
             <div key={s.id} style={{width:32,height:32,borderRadius:"50%",background:i<=step?current.color:"var(--color-background-secondary)",border:"2px solid "+(i<=step?current.color:"var(--color-border-tertiary)"),display:"flex",alignItems:"center",justifyContent:"center"}}>
               <span style={{fontSize:i<step?12:14}}>{i<step?"✓":s.icon}</span>
             </div>
@@ -369,8 +465,8 @@ function RetentionWalkthrough({ kidId, subject, lesson, onComplete }) {
           <div>
             <p style={{fontSize:14,color:"var(--color-text-secondary)",fontFamily:"sans-serif",margin:"0 0 16px",textAlign:"center"}}>How well do you understand this now?</p>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10,marginBottom:16}}>
-              {[{v:1,label:"Still fuzzy",emoji:"🤔"},{v:2,label:"Getting it",emoji:"👍"},{v:3,label:"Got it",emoji:"🔥"}].map(r => (
-                <button key={r.v} onClick={() => {setRating(r.v);setStepDone(true);}} style={{background:rating===r.v?"rgba(99,102,241,0.12)":"var(--color-background-primary)",border:"2px solid "+(rating===r.v?"#6366F1":"var(--color-border-secondary)"),borderRadius:14,padding:"14px 8px",cursor:"pointer",textAlign:"center"}}>
+              {[{v:1,label:"Still fuzzy",emoji:"🤔"},{v:2,label:"Getting it",emoji:"👍"},{v:3,label:"Got it",emoji:"🔥"}].map(r=>(
+                <button key={r.v} onClick={()=>{setRating(r.v);setStepDone(true);}} style={{background:rating===r.v?"rgba(99,102,241,0.12)":"var(--color-background-primary)",border:"2px solid "+(rating===r.v?"#6366F1":"var(--color-border-secondary)"),borderRadius:14,padding:"14px 8px",cursor:"pointer",textAlign:"center"}}>
                   <p style={{fontSize:28,margin:"0 0 6px"}}>{r.emoji}</p>
                   <p style={{fontSize:12,fontWeight:700,color:"var(--color-text-primary)",fontFamily:"sans-serif",margin:0}}>{r.label}</p>
                 </button>
@@ -379,14 +475,14 @@ function RetentionWalkthrough({ kidId, subject, lesson, onComplete }) {
           </div>
         ) : (
           <div>
-            <textarea value={input} onChange={e=>setInput(e.target.value)} disabled={stepDone} placeholder="Write your response here..." rows={4} style={{width:"100%",boxSizing:"border-box",border:"1.5px solid var(--color-border-secondary)",borderRadius:10,padding:"10px 12px",fontSize:14,fontFamily:"sans-serif",resize:"vertical",outline:"none",background:stepDone?"var(--color-background-secondary)":"var(--color-background-primary)",color:"var(--color-text-primary)"}} />
+            <textarea value={input} onChange={e=>setInput(e.target.value)} disabled={stepDone} placeholder="Write your response here..." rows={4} style={{width:"100%",boxSizing:"border-box",border:"1.5px solid var(--color-border-secondary)",borderRadius:10,padding:"10px 12px",fontSize:14,fontFamily:"sans-serif",resize:"vertical",outline:"none",background:stepDone?"var(--color-background-secondary)":"var(--color-background-primary)",color:"var(--color-text-primary)"}}/>
             {!stepDone && <button onClick={submit} disabled={loading||!input.trim()} style={{marginTop:8,background:loading||!input.trim()?"var(--color-background-secondary)":current.color,color:loading||!input.trim()?"var(--color-text-secondary)":"#fff",border:"none",borderRadius:10,padding:"11px 22px",fontSize:14,fontWeight:600,fontFamily:"sans-serif",cursor:loading||!input.trim()?"default":"pointer"}}>{loading?"Reviewing...":"Submit"}</button>}
             {fb && <div style={{marginTop:12,padding:"12px 14px",borderRadius:10,background:"rgba(99,102,241,0.08)",border:"1px solid rgba(99,102,241,0.3)"}}><p style={{fontSize:14,color:"var(--color-text-primary)",lineHeight:1.65,fontFamily:"sans-serif",margin:0}}>{fb}</p></div>}
           </div>
         )}
         {stepDone && <button onClick={advance} style={{display:"block",width:"100%",background:current.color,border:"none",borderRadius:14,padding:"14px",fontSize:15,fontWeight:700,color:"#fff",cursor:"pointer",fontFamily:"sans-serif",marginTop:12,textAlign:"center"}}>{isLast?"Complete review ✓":"Next step →"}</button>}
       </div>
-      <BottomBar onBack={() => onComplete(answers)} label={"Step "+(step+1)+" of "+STEPS.length} sublabel={current.label} color={current.color} />
+      <BottomBar onBack={()=>onComplete(answers)} label={"Step "+(step+1)+" of "+STEPS.length} sublabel={current.label} color={current.color}/>
     </div>
   );
 }
@@ -398,11 +494,13 @@ function SpacedRetrieval({ kidId, subject, lesson, onDone }) {
   const [fb, setFb] = useState(null);
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
+
   async function check() {
     setLoading(true);
     const text = await askClaude("Spaced retrieval coach for "+kid.name+". Yesterday they learned: "+lesson.title+" in "+subject+". Asked: "+lesson.recall+". Their answer today: "+input+". In 2 sentences: what they remembered well, and one thing to reinforce. Under 50 words.");
-    setFb(text||"Good recall. Keep it up.");setDone(true);setLoading(false);
+    setFb(text||"Good recall. Keep it up."); setDone(true); setLoading(false);
   }
+
   return (
     <div style={{background:"var(--color-background-primary)",border:"2px solid "+kid.color,borderRadius:16,padding:"18px 20px",marginBottom:16}}>
       <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:12}}>
@@ -415,7 +513,7 @@ function SpacedRetrieval({ kidId, subject, lesson, onDone }) {
       <p style={{fontSize:14,color:"var(--color-text-primary)",lineHeight:1.7,fontFamily:"sans-serif",margin:"0 0 12px",padding:"10px 12px",background:"var(--color-background-secondary)",borderRadius:8}}>{lesson.recall}</p>
       {!done ? (
         <div>
-          <textarea value={input} onChange={e=>setInput(e.target.value)} placeholder="Quick answer — no looking back..." rows={2} style={{width:"100%",boxSizing:"border-box",border:"1.5px solid var(--color-border-secondary)",borderRadius:8,padding:"8px 12px",fontSize:13,fontFamily:"sans-serif",resize:"none",outline:"none",background:"var(--color-background-primary)",color:"var(--color-text-primary)",marginBottom:8}} />
+          <textarea value={input} onChange={e=>setInput(e.target.value)} placeholder="Quick answer — no looking back..." rows={2} style={{width:"100%",boxSizing:"border-box",border:"1.5px solid var(--color-border-secondary)",borderRadius:8,padding:"8px 12px",fontSize:13,fontFamily:"sans-serif",resize:"none",outline:"none",background:"var(--color-background-primary)",color:"var(--color-text-primary)",marginBottom:8}}/>
           <div style={{display:"flex",gap:8}}>
             <button onClick={check} disabled={loading||!input.trim()} style={{background:loading||!input.trim()?"var(--color-background-secondary)":kid.color,color:loading||!input.trim()?"var(--color-text-secondary)":"#fff",border:"none",borderRadius:8,padding:"10px 18px",fontSize:13,fontWeight:600,fontFamily:"sans-serif",cursor:loading||!input.trim()?"default":"pointer"}}>{loading?"Checking...":"Submit recall"}</button>
             <button onClick={onDone} style={{background:"none",border:"1px solid var(--color-border-secondary)",borderRadius:8,padding:"10px 16px",fontSize:13,color:"var(--color-text-secondary)",fontFamily:"sans-serif",cursor:"pointer"}}>Skip</button>
@@ -442,7 +540,6 @@ function LessonView({ kidId, subject, alreadyDone, onBack, onDone }) {
   const [confirm, setConfirm] = useState(false);
   const [deep, setDeep] = useState(false);
   const [mode, setMode] = useState(alreadyDone?"done":"lesson");
-  const [showVerification, setShowVerification] = useState(false);
 
   if (!lesson) return <div style={{padding:40,color:"var(--color-text-primary)",fontFamily:"sans-serif"}}>{"Lesson not found for "+subject}</div>;
 
@@ -460,9 +557,7 @@ function LessonView({ kidId, subject, alreadyDone, onBack, onDone }) {
       const cNum = parseFloat(lesson.ans);
       const correct = (!isNaN(uNum)&&!isNaN(cNum)&&Math.abs(uNum-cNum)<0.05)||input.trim().toLowerCase().includes((lesson.ans||"").toLowerCase());
       if (correct) {
-        setFb({type:"correct",text:"That is exactly right."});
-        setMode("done");
-        onDone(subject,true,null);
+        setFb({type:"correct",text:"That is exactly right."}); setMode("done"); onDone(subject,true,null);
       } else {
         const t = await askClaude("Student "+kid.name+" answered "+input+" to: "+lesson.tryIt+". Correct: "+lesson.ans+". Hint: "+lesson.hint+". 2 sentences: what went wrong and guide them. Encouraging.");
         setFb({type:"wrong",text:t||lesson.hint});
@@ -475,11 +570,11 @@ function LessonView({ kidId, subject, alreadyDone, onBack, onDone }) {
   const fbBorder={correct:"#22C55E",wrong:"#EAB308",writing:"#6366F1"};
   const fbLabel={correct:"Correct ✓",wrong:"Not quite",writing:"Coach feedback"};
 
-  if (mode==="walkthrough") return <RetentionWalkthrough kidId={kidId} subject={subject} lesson={lesson} onComplete={data=>{setMode("done");onDone(subject,true,data);}} />;
+  if (mode==="walkthrough") return (<RetentionWalkthrough kidId={kidId} subject={subject} lesson={lesson} onComplete={data=>{setMode("done");onDone(subject,true,data);}}/>);
 
   return (
     <div style={{flex:1,display:"flex",flexDirection:"column",minHeight:0}}>
-      {confirm && <ConfirmModal subject={subject} color={kid.color} onYes={()=>{setConfirm(false);setMode("walkthrough");}} onNo={()=>setConfirm(false)} />}
+      {confirm && <ConfirmModal subject={subject} color={kid.color} onYes={()=>{setConfirm(false);setMode("walkthrough");}} onNo={()=>setConfirm(false)}/>}
       <div style={{background:kid.color,padding:"48px 16px 14px",flexShrink:0}}>
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
           <p style={{fontSize:17,fontWeight:700,color:"#fff",margin:0,fontFamily:kid.font,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",flex:1}}>{subject}</p>
@@ -493,17 +588,17 @@ function LessonView({ kidId, subject, alreadyDone, onBack, onDone }) {
         </div>
         <p style={{fontSize:10,fontWeight:700,color:"var(--color-text-tertiary)",letterSpacing:2,margin:"0 0 4px",fontFamily:"sans-serif",textTransform:"uppercase"}}>{lesson.obj}</p>
         <h2 style={{fontSize:22,fontWeight:700,color:"var(--color-text-primary)",margin:"0 0 20px",fontFamily:kid.font,lineHeight:1.2}}>{lesson.title}</h2>
-        {chunks.map((chunk,ci) => {
-          const lines = chunk.split("\n").filter(l=>l.trim());
-          const isCode = lines.some(l=>/^(Step|Law |PEMDAS|\d\.)/.test(l.trim())||l.includes(" = "));
-          if (isCode) return <div key={ci} style={{background:"var(--color-background-secondary)",borderRadius:10,padding:"14px 16px",marginBottom:16,borderLeft:"3px solid "+kid.color}}>{lines.map((ln,li)=><p key={li} style={{fontSize:13,color:"var(--color-text-primary)",lineHeight:1.7,margin:"2px 0",fontFamily:"monospace"}}>{ln}</p>)}</div>;
+        {chunks.map((chunk,ci)=>{
+          const lines=chunk.split("\n").filter(l=>l.trim());
+          const isCode=lines.some(l=>/^(Step|Law |PEMDAS|\d\.)/.test(l.trim())||l.includes(" = "));
+          if(isCode) return <div key={ci} style={{background:"var(--color-background-secondary)",borderRadius:10,padding:"14px 16px",marginBottom:16,borderLeft:"3px solid "+kid.color}}>{lines.map((ln,li)=><p key={li} style={{fontSize:13,color:"var(--color-text-primary)",lineHeight:1.7,margin:"2px 0",fontFamily:"monospace"}}>{ln}</p>)}</div>;
           return <p key={ci} style={{fontSize:15,color:"var(--color-text-primary)",lineHeight:1.8,margin:"0 0 14px",fontFamily:"sans-serif"}}>{lines.join(" ")}</p>;
         })}
         <div style={{background:"rgba(245,158,11,0.1)",borderRadius:10,padding:"12px 14px",marginBottom:14,borderLeft:"3px solid #F59E0B",marginTop:8}}>
           <p style={{fontSize:11,fontWeight:700,color:"#92400E",letterSpacing:1.5,margin:"0 0 8px",fontFamily:"sans-serif",textTransform:"uppercase"}}>Now you try it</p>
           <p style={{fontSize:14,color:"var(--color-text-primary)",lineHeight:1.7,fontFamily:"sans-serif",margin:0}}>{lesson.tryIt}</p>
         </div>
-        <textarea value={input} onChange={e=>setInput(e.target.value)} disabled={mode==="done"} placeholder={isWriting?"Write your answer here...":"Type your answer..."} rows={isWriting?4:2} style={{width:"100%",boxSizing:"border-box",border:"1.5px solid "+(fb?fbBorder[fb.type]:"var(--color-border-secondary)"),borderRadius:10,padding:"10px 12px",fontSize:14,fontFamily:"sans-serif",resize:"vertical",outline:"none",background:mode==="done"?"var(--color-background-secondary)":"var(--color-background-primary)",color:"var(--color-text-primary)"}} />
+        <textarea value={input} onChange={e=>setInput(e.target.value)} disabled={mode==="done"} placeholder={isWriting?"Write your answer here...":"Type your answer..."} rows={isWriting?4:2} style={{width:"100%",boxSizing:"border-box",border:"1.5px solid "+(fb?fbBorder[fb.type]:"var(--color-border-secondary)"),borderRadius:10,padding:"10px 12px",fontSize:14,fontFamily:"sans-serif",resize:"vertical",outline:"none",background:mode==="done"?"var(--color-background-secondary)":"var(--color-background-primary)",color:"var(--color-text-primary)"}}/>
         {mode!=="done" && <button onClick={check} disabled={checking||!input.trim()} style={{marginTop:8,background:checking||!input.trim()?"var(--color-background-secondary)":kid.color,color:checking||!input.trim()?"var(--color-text-secondary)":"#fff",border:"none",borderRadius:10,padding:"11px 22px",fontSize:14,fontWeight:600,fontFamily:"sans-serif",cursor:checking||!input.trim()?"default":"pointer"}}>{checking?"Checking...":"Check my answer"}</button>}
         {fb && (
           <div style={{marginTop:12,padding:"12px 14px",borderRadius:10,background:fbBg[fb.type],border:"1px solid "+fbBorder[fb.type]}}>
@@ -538,7 +633,7 @@ function LessonView({ kidId, subject, alreadyDone, onBack, onDone }) {
           </div>
         )}
       </div>
-      <BottomBar onBack={onBack} label={subject} sublabel={"Stage "+s+" · "+stageName(s)} color={kid.color} />
+      <BottomBar onBack={onBack} label={subject} sublabel={"Stage "+s+" · "+stageName(s)} color={kid.color}/>
     </div>
   );
 }
@@ -554,10 +649,9 @@ function Session({ kidId, kidProg, onDone, onBack }) {
   const spacedSubjects = yestPair.filter(sub => yd[sub+"_done"] && !td["spaced_"+sub]);
   const [spacedDone, setSpacedDone] = useState({});
 
-  if (active) return <LessonView kidId={kidId} subject={active} alreadyDone={!!td[active==="Pre-Algebra"||active===pair[0]?"subject_1_done":"subject_2_done"]} onBack={()=>setActive(null)} onDone={(sub,correct,retention)=>{onDone(sub,correct,retention);setActive(null);}} />;
+  if (active) return (<LessonView kidId={kidId} subject={active} alreadyDone={!!td[active===pair[0]?"subject_1_done":"subject_2_done"]} onBack={()=>setActive(null)} onDone={(sub,correct,retention)=>{onDone(sub,correct,retention);setActive(null);}}/>);
 
-  const d0 = !!td.subject_1_done;
-  const d1 = !!td.subject_2_done;
+  const d0=!!td.subject_1_done, d1=!!td.subject_2_done;
 
   return (
     <div style={{flex:1,display:"flex",flexDirection:"column",minHeight:0}}>
@@ -568,15 +662,15 @@ function Session({ kidId, kidProg, onDone, onBack }) {
       <div style={{flex:1,overflowY:"auto",padding:"16px 16px 20px"}}>
         {spacedSubjects.filter(s=>!spacedDone[s]).map(sub=>{
           const lesson=C[sub]?.stages?.[stageNum()]||C[sub]?.stages?.[3];
-          if(!lesson)return null;
-          return <SpacedRetrieval key={sub} kidId={kidId} subject={sub} lesson={lesson} onDone={()=>{setSpacedDone(p=>({...p,[sub]:true}));onDone("spaced_"+sub,true,null);}} />;
+          if(!lesson) return null;
+          return (<SpacedRetrieval key={sub} kidId={kidId} subject={sub} lesson={lesson} onDone={()=>{setSpacedDone(p=>({...p,[sub]:true}));onDone("spaced_"+sub,true,null);}}/>);
         })}
         <div style={{background:"rgba(245,158,11,0.1)",borderRadius:12,padding:"12px 16px",marginBottom:16,border:"1px solid rgba(245,158,11,0.3)"}}>
           <span style={{background:"#F59E0B",color:"#fff",fontSize:10,fontWeight:700,letterSpacing:1.5,padding:"2px 8px",borderRadius:99,fontFamily:"sans-serif",textTransform:"uppercase"}}>{"Stage "+stageNum()+" — "+stageName(stageNum())}</span>
         </div>
-        {pair.map((sub,i) => {
-          const done = i===0?d0:d1;
-          const isFocus = KIDS[kidId].focusSubject===sub;
+        {pair.map((sub,i)=>{
+          const done=i===0?d0:d1;
+          const isFocus=KIDS[kidId].focusSubject===sub;
           return (
             <button key={sub} onClick={()=>setActive(sub)} style={{display:"flex",alignItems:"center",gap:14,width:"100%",background:done?"rgba(34,197,94,0.08)":"var(--color-background-primary)",border:"2px solid "+(done?"#22C55E":kid.color),borderRadius:16,padding:"18px 20px",marginBottom:12,cursor:"pointer",textAlign:"left"}}>
               <div style={{width:48,height:48,borderRadius:"50%",background:done?"rgba(34,197,94,0.15)":kid.light,border:"2px solid "+(done?"#22C55E":kid.color),display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
@@ -593,15 +687,19 @@ function Session({ kidId, kidProg, onDone, onBack }) {
             </button>
           );
         })}
-        {d0&&d1&&<div style={{background:"rgba(34,197,94,0.1)",border:"2px solid #22C55E",borderRadius:16,padding:"24px",textAlign:"center",marginTop:8}}><p style={{fontSize:32,margin:"0 0 12px"}}>🎯</p><p style={{fontSize:18,fontWeight:700,color:"#16A34A",margin:"0 0 6px",fontFamily:kid.font}}>Both subjects complete and reviewed.</p><p style={{fontSize:13,color:"var(--color-text-secondary)",fontFamily:"sans-serif",margin:0}}>Parent dashboard is up to date.</p></div>}
+        {d0&&d1&&<div style={{background:"rgba(34,197,94,0.1)",border:"2px solid #22C55E",borderRadius:16,padding:"24px",textAlign:"center",marginTop:8}}>
+          <p style={{fontSize:32,margin:"0 0 12px"}}>🎯</p>
+          <p style={{fontSize:18,fontWeight:700,color:"#16A34A",margin:"0 0 6px",fontFamily:kid.font}}>Both subjects complete and reviewed.</p>
+          <p style={{fontSize:13,color:"var(--color-text-secondary)",fontFamily:"sans-serif",margin:0}}>Parent dashboard is up to date.</p>
+        </div>}
       </div>
-      <BottomBar onBack={onBack} label="Today's Session" sublabel={"Week "+weekNum()+" · Stage "+stageNum()+" of 3"} color={kid.color} />
+      <BottomBar onBack={onBack} label="Today's Session" sublabel={"Week "+weekNum()+" · Stage "+stageNum()+" of 3"} color={kid.color}/>
     </div>
   );
 }
 
 // ─── Roadmap Screen ───────────────────────────────────────────────────────────
-function Roadmap({ kidId, progress, onBack }) {
+function Roadmap({ kidId, progress, onBack, onStartSession }) {
   const kid = KIDS[kidId];
   const kp = progress[kidId] || {};
   const sessions = Object.values(kp).filter(v=>typeof v==="object"&&v.both_done).length;
@@ -611,7 +709,7 @@ function Roadmap({ kidId, progress, onBack }) {
 
   const stages = [
     { num:1, name:"Orientation", days:"Days 1–14", desc:"Build the mental model. Understand what each subject is for and why it matters to your actual life.", weeks:"Weeks 1–2" },
-    { num:2, name:"Foundation", days:"Days 15–28", desc:"Learn the core concepts one at a time with examples before every attempt.", weeks:"Weeks 3–4" },
+    { num:2, name:"Foundation",  days:"Days 15–28", desc:"Learn the core concepts one at a time with examples before every attempt.", weeks:"Weeks 3–4" },
     { num:3, name:"Application", days:"Days 29–74", desc:"Apply everything to real problems. Connect concepts across subjects. Diploma-level depth.", weeks:"Weeks 5–11" },
   ];
 
@@ -626,14 +724,15 @@ function Roadmap({ kidId, progress, onBack }) {
   });
 
   const projectedSessions = sessions>0 ? Math.round((sessions/Math.max(1,dayIdx()))*TOTAL_DAYS) : 0;
+  const todayDone = !!kp[todayKey()]?.both_done;
 
   return (
     <div style={{flex:1,display:"flex",flexDirection:"column",minHeight:0}}>
       <div style={{background:"linear-gradient(135deg,"+kid.color+",#0F172A)",padding:"48px 20px 24px",flexShrink:0}}>
-        <p style={{fontSize:11,color:"rgba(255,255,255,0.6)",fontFamily:"sans-serif",letterSpacing:2,margin:"0 0 4px",textTransform:"uppercase"}}>{kid.name} — Summer Roadmap</p>
+        <p style={{fontSize:11,color:"rgba(255,255,255,0.6)",fontFamily:"sans-serif",letterSpacing:2,margin:"0 0 4px",textTransform:"uppercase"}}>{kid.name+" — Summer Roadmap"}</p>
         <h2 style={{fontSize:24,fontWeight:700,color:"#fff",margin:"0 0 12px",fontFamily:kid.font}}>Lesson Plan</h2>
         <div style={{background:"rgba(255,255,255,0.1)",borderRadius:99,height:8,overflow:"hidden",marginBottom:6}}>
-          <div style={{width:pct+"%",height:"100%",background:"#FCD34D",borderRadius:99,transition:"width 0.6s"}} />
+          <div style={{width:pct+"%",height:"100%",background:"#FCD34D",borderRadius:99,transition:"width 0.6s"}}/>
         </div>
         <div style={{display:"flex",justifyContent:"space-between"}}>
           <p style={{fontSize:11,color:"rgba(255,255,255,0.6)",fontFamily:"sans-serif",margin:0}}>Jun 2</p>
@@ -642,13 +741,16 @@ function Roadmap({ kidId, progress, onBack }) {
         </div>
       </div>
       <div style={{flex:1,overflowY:"auto",padding:"16px 16px 20px"}}>
-
-        {/* Stage arc */}
+        {/* Today CTA */}
+        <div style={{background:todayDone?"rgba(34,197,94,0.08)":"var(--color-background-primary)",border:"2px solid "+(todayDone?"#22C55E":kid.color),borderRadius:16,padding:"16px 18px",marginBottom:16}}>
+          <p style={{fontSize:11,fontWeight:700,color:todayDone?"#16A34A":kid.color,letterSpacing:1.5,margin:"0 0 6px",fontFamily:"sans-serif",textTransform:"uppercase"}}>{todayDone?"Today Complete ✓":"Today's Session"}</p>
+          <p style={{fontSize:13,color:"var(--color-text-secondary)",fontFamily:"sans-serif",margin:"0 0 12px"}}>{todayPair(kidId)[0]+" + "+todayPair(kidId)[1]}</p>
+          {!todayDone&&<button onClick={onStartSession} style={{background:kid.color,border:"none",borderRadius:10,padding:"11px 24px",fontSize:14,fontWeight:700,color:"#fff",cursor:"pointer",fontFamily:"sans-serif"}}>Start today's session →</button>}
+        </div>
         <p style={{fontSize:11,fontWeight:700,color:"var(--color-text-secondary)",letterSpacing:1.5,margin:"0 0 12px",fontFamily:"sans-serif",textTransform:"uppercase"}}>The Three Stages</p>
         {stages.map(st=>{
-          const isActive=currentStage===st.num;
-          const isPast=currentStage>st.num;
-          return(
+          const isActive=currentStage===st.num, isPast=currentStage>st.num;
+          return (
             <div key={st.num} style={{background:isActive?kid.light:isPast?"rgba(34,197,94,0.06)":"var(--color-background-primary)",border:"1.5px solid "+(isActive?kid.color:isPast?"#22C55E":"var(--color-border-tertiary)"),borderRadius:14,padding:"14px 16px",marginBottom:10}}>
               <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:6}}>
                 <div style={{display:"flex",alignItems:"center",gap:10}}>
@@ -667,15 +769,11 @@ function Roadmap({ kidId, progress, onBack }) {
             </div>
           );
         })}
-
-        {/* Subject plan */}
         <p style={{fontSize:11,fontWeight:700,color:"var(--color-text-secondary)",letterSpacing:1.5,margin:"20px 0 12px",fontFamily:"sans-serif",textTransform:"uppercase"}}>Subject Focus Plan</p>
         {kid.subjects.map(sub=>{
-          const subSessions = Object.values(kp).filter(v=>typeof v==="object"&&(v.subject_1===sub&&v.subject_1_done||v.subject_2===sub&&v.subject_2_done)).length;
-          const isFocus=kid.focusSubject===sub;
-          const isStrength=kid.strengthSubject===sub;
-          const stageProgress=Math.min(3,Math.max(1,currentStage));
-          return(
+          const subSessions=Object.values(kp).filter(v=>typeof v==="object"&&(v.subject_1===sub&&v.subject_1_done||v.subject_2===sub&&v.subject_2_done)).length;
+          const isFocus=kid.focusSubject===sub, isStrength=kid.strengthSubject===sub;
+          return (
             <div key={sub} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 14px",background:"var(--color-background-primary)",borderRadius:12,marginBottom:8,border:"1px solid "+(isFocus?"rgba(239,68,68,0.3)":isStrength?"rgba(34,197,94,0.3)":"var(--color-border-tertiary)")}}>
               <span style={{fontSize:18,flexShrink:0}}>{C[sub]?.icon}</span>
               <div style={{flex:1,minWidth:0}}>
@@ -686,7 +784,7 @@ function Roadmap({ kidId, progress, onBack }) {
                 </div>
                 <div style={{display:"flex",gap:4}}>
                   {[1,2,3].map(sn=>(
-                    <div key={sn} style={{height:4,flex:1,borderRadius:99,background:sn<stageProgress?"#22C55E":sn===stageProgress?kid.color:"var(--color-background-secondary)"}} />
+                    <div key={sn} style={{height:4,flex:1,borderRadius:99,background:sn<currentStage?"#22C55E":sn===currentStage?kid.color:"var(--color-background-secondary)"}}/>
                   ))}
                 </div>
               </div>
@@ -694,36 +792,139 @@ function Roadmap({ kidId, progress, onBack }) {
             </div>
           );
         })}
-
-        {/* Week ahead */}
         <p style={{fontSize:11,fontWeight:700,color:"var(--color-text-secondary)",letterSpacing:1.5,margin:"20px 0 12px",fontFamily:"sans-serif",textTransform:"uppercase"}}>The Next 7 Days</p>
-        {weekAhead.map(day=>(
-          <div key={day.k} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 14px",background:day.isToday?kid.light:day.done?"rgba(34,197,94,0.06)":"var(--color-background-primary)",borderRadius:12,marginBottom:8,border:"1.5px solid "+(day.isToday?kid.color:day.done?"#22C55E":"var(--color-border-tertiary)")}}>
-            <div style={{width:40,height:40,borderRadius:"50%",background:day.done?"rgba(34,197,94,0.15)":day.isToday?kid.color:"var(--color-background-secondary)",border:"2px solid "+(day.done?"#22C55E":day.isToday?kid.color:"var(--color-border-tertiary)"),display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-              <span style={{fontSize:14,color:day.done?"#16A34A":day.isToday?"#fff":"var(--color-text-secondary)",fontWeight:600}}>{day.done?"✓":day.isToday?"→":""}</span>
+        {weekAhead.map(day=>{
+          if(day.isToday&&!todayDone) return (
+            <button key={day.k} onClick={onStartSession} style={{display:"flex",alignItems:"center",gap:12,padding:"12px 16px",background:kid.light,borderRadius:12,marginBottom:8,border:"2px solid "+kid.color,width:"100%",textAlign:"left",cursor:"pointer",boxSizing:"border-box"}}>
+              <div style={{width:40,height:40,borderRadius:"50%",background:kid.color,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><span style={{fontSize:14,color:"#fff",fontWeight:700}}>→</span></div>
+              <div style={{flex:1}}><p style={{fontSize:12,fontWeight:700,color:kid.color,fontFamily:"sans-serif",margin:"0 0 2px"}}>Today — Tap to start</p><p style={{fontSize:11,color:"var(--color-text-secondary)",fontFamily:"sans-serif",margin:0}}>{day.pair[0]+" + "+day.pair[1]}</p></div>
+              <span style={{fontSize:13,fontWeight:700,color:kid.color}}>→</span>
+            </button>
+          );
+          return (
+            <div key={day.k} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 14px",background:day.isToday?"rgba(34,197,94,0.06)":day.done?"rgba(34,197,94,0.06)":"var(--color-background-primary)",borderRadius:12,marginBottom:8,border:"1.5px solid "+(day.isToday||day.done?"#22C55E":"var(--color-border-tertiary)")}}>
+              <div style={{width:40,height:40,borderRadius:"50%",background:"rgba(34,197,94,0.15)",border:"2px solid #22C55E",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><span style={{fontSize:14,color:"#16A34A",fontWeight:600}}>✓</span></div>
+              <div style={{flex:1}}><p style={{fontSize:12,fontWeight:600,color:day.isToday?"#16A34A":day.done?"#16A34A":"var(--color-text-primary)",fontFamily:"sans-serif",margin:"0 0 2px"}}>{day.isToday?"Today — Done ✓":day.dayLabel}</p><p style={{fontSize:11,color:"var(--color-text-secondary)",fontFamily:"sans-serif",margin:0}}>{day.pair[0]+" + "+day.pair[1]}</p></div>
+            </div>
+          );
+        })}
+        <div style={{background:"rgba(99,102,241,0.08)",border:"1px solid rgba(99,102,241,0.2)",borderRadius:14,padding:"14px 16px",marginTop:8}}>
+          <p style={{fontSize:11,fontWeight:700,color:"#6366F1",letterSpacing:1.5,margin:"0 0 6px",fontFamily:"sans-serif",textTransform:"uppercase"}}>Summer projection</p>
+          <p style={{fontSize:14,color:"var(--color-text-primary)",fontFamily:"sans-serif",margin:0,lineHeight:1.6}}>{"At current pace: "+sessions+" sessions completed, projecting "+projectedSessions+" of "+TOTAL_DAYS+" total days by August 15."}</p>
+        </div>
+      </div>
+      <BottomBar onBack={onBack} label={kid.name+" — Roadmap"} sublabel={"Week "+currentWeek+" · Stage "+currentStage+" of 3"} color={kid.color}/>
+    </div>
+  );
+}
+
+// ─── Weekly Summary ───────────────────────────────────────────────────────────
+function WeeklySummary({ kidId, progress, onBack }) {
+  const kid = KIDS[kidId];
+  const kp = progress[kidId] || {};
+  const { start, end } = getPrevWeekRange();
+  const keys = dateRangeKeys(start, end);
+  const weekDays = keys.map(k=>{
+    const d = kp[k] || {};
+    const dt = new Date(k);
+    const pair = pairForDate(kidId, k);
+    return { k, date:dt, done:!!d.both_done, partial:(!!d.subject_1_done||!!d.subject_2_done)&&!d.both_done, data:d, pair, dayLabel:dt.toLocaleDateString("en-US",{weekday:"short",month:"numeric",day:"numeric"}) };
+  });
+
+  const completed = weekDays.filter(d=>d.done).length;
+  const partial = weekDays.filter(d=>d.partial).length;
+  const missed = 7 - completed - partial;
+  const streak = getStreak(kp);
+
+  // Subject coverage this week
+  const subjectHits = {};
+  weekDays.forEach(day=>{
+    if(day.data.subject_1_done && day.data.subject_1) {
+      subjectHits[day.data.subject_1] = (subjectHits[day.data.subject_1]||0)+1;
+    }
+    if(day.data.subject_2_done && day.data.subject_2) {
+      subjectHits[day.data.subject_2] = (subjectHits[day.data.subject_2]||0)+1;
+    }
+  });
+
+  const weekLabel = start.toLocaleDateString("en-US",{month:"long",day:"numeric"})+" – "+end.toLocaleDateString("en-US",{month:"long",day:"numeric"});
+  const grade = completed>=6?"🏆 Excellent week":completed>=4?"⭐ Strong week":completed>=2?"📈 Building momentum":"⚠️ Needs attention";
+
+  return (
+    <div style={{flex:1,display:"flex",flexDirection:"column",minHeight:0}}>
+      <div style={{background:"linear-gradient(135deg,"+kid.color+",#0F172A)",padding:"48px 20px 24px",flexShrink:0}}>
+        <p style={{fontSize:11,color:"rgba(255,255,255,0.6)",fontFamily:"sans-serif",letterSpacing:2,margin:"0 0 4px",textTransform:"uppercase"}}>{kid.name+" — Weekly Summary"}</p>
+        <h2 style={{fontSize:22,fontWeight:700,color:"#fff",margin:"0 0 4px",fontFamily:kid.font}}>Last Week</h2>
+        <p style={{fontSize:12,color:"rgba(255,255,255,0.7)",fontFamily:"sans-serif",margin:0}}>{weekLabel}</p>
+      </div>
+      <div style={{flex:1,overflowY:"auto",padding:"16px 16px 20px"}}>
+        {/* Grade card */}
+        <div style={{background:completed>=4?"rgba(34,197,94,0.1)":completed>=2?"rgba(245,158,11,0.1)":"rgba(239,68,68,0.08)",border:"2px solid "+(completed>=4?"#22C55E":completed>=2?"#F59E0B":"#EF4444"),borderRadius:16,padding:"20px",marginBottom:16,textAlign:"center"}}>
+          <p style={{fontSize:28,margin:"0 0 8px"}}>{grade.split(" ")[0]}</p>
+          <p style={{fontSize:18,fontWeight:700,color:"var(--color-text-primary)",fontFamily:kid.font,margin:"0 0 4px"}}>{grade.slice(2)}</p>
+          <p style={{fontSize:13,color:"var(--color-text-secondary)",fontFamily:"sans-serif",margin:0}}>{completed+" of 7 days fully complete"}</p>
+        </div>
+
+        {/* Stats row */}
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:16}}>
+          {[{l:"Complete",v:completed,c:"#22C55E"},{l:"Partial",v:partial,c:"#F59E0B"},{l:"Missed",v:missed,c:"#EF4444"}].map(s=>(
+            <div key={s.l} style={{background:"var(--color-background-primary)",border:"0.5px solid var(--color-border-tertiary)",borderRadius:12,padding:"12px 14px",textAlign:"center"}}>
+              <p style={{fontSize:24,fontWeight:700,color:s.c,fontFamily:"sans-serif",margin:"0 0 2px"}}>{s.v}</p>
+              <p style={{fontSize:10,color:"var(--color-text-secondary)",fontFamily:"sans-serif",margin:0,textTransform:"uppercase",letterSpacing:1}}>{s.l}</p>
+            </div>
+          ))}
+        </div>
+
+        {/* Day by day */}
+        <p style={{fontSize:11,fontWeight:700,color:"var(--color-text-secondary)",letterSpacing:1.5,margin:"0 0 10px",fontFamily:"sans-serif",textTransform:"uppercase"}}>Day by Day</p>
+        {weekDays.map(day=>(
+          <div key={day.k} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 14px",background:day.done?"rgba(34,197,94,0.06)":day.partial?"rgba(245,158,11,0.06)":"var(--color-background-primary)",borderRadius:12,marginBottom:8,border:"1px solid "+(day.done?"#22C55E":day.partial?"#F59E0B":"var(--color-border-tertiary)")}}>
+            <div style={{width:36,height:36,borderRadius:"50%",background:day.done?"rgba(34,197,94,0.15)":day.partial?"rgba(245,158,11,0.1)":"var(--color-background-secondary)",border:"2px solid "+(day.done?"#22C55E":day.partial?"#F59E0B":"var(--color-border-tertiary)"),display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+              <span style={{fontSize:14}}>{day.done?"✓":day.partial?"½":"–"}</span>
             </div>
             <div style={{flex:1}}>
-              <p style={{fontSize:12,fontWeight:600,color:day.isToday?kid.color:day.done?"#16A34A":"var(--color-text-primary)",fontFamily:"sans-serif",margin:"0 0 2px"}}>{day.isToday?"Today":day.dayLabel}</p>
+              <p style={{fontSize:12,fontWeight:600,color:"var(--color-text-primary)",fontFamily:"sans-serif",margin:"0 0 2px"}}>{day.dayLabel}</p>
               <p style={{fontSize:11,color:"var(--color-text-secondary)",fontFamily:"sans-serif",margin:0}}>{day.pair[0]+" + "+day.pair[1]}</p>
             </div>
+            <span style={{fontSize:11,color:day.done?"#16A34A":day.partial?"#92400E":"var(--color-text-tertiary)",fontFamily:"sans-serif",fontWeight:600}}>
+              {day.done?"Both done":day.partial?"1/2 done":"Missed"}
+            </span>
           </div>
         ))}
 
-        {/* Projection */}
+        {/* Subject coverage */}
+        <p style={{fontSize:11,fontWeight:700,color:"var(--color-text-secondary)",letterSpacing:1.5,margin:"16px 0 10px",fontFamily:"sans-serif",textTransform:"uppercase"}}>Subject Coverage This Week</p>
+        {kid.subjects.map(sub=>{
+          const hits=subjectHits[sub]||0;
+          const isFocus=kid.focusSubject===sub;
+          return (
+            <div key={sub} style={{display:"flex",alignItems:"center",gap:10,marginBottom:8,padding:"8px 12px",background:"var(--color-background-primary)",borderRadius:10,border:"1px solid "+(isFocus&&hits===0?"rgba(239,68,68,0.3)":"var(--color-border-tertiary)")}}>
+              <span style={{fontSize:16,flexShrink:0}}>{C[sub]?.icon}</span>
+              <p style={{flex:1,fontSize:12,color:"var(--color-text-primary)",fontFamily:"sans-serif",margin:0}}>{sub}{isFocus?" 🎯":""}</p>
+              <div style={{display:"flex",gap:3}}>
+                {Array.from({length:4},(_,i)=><div key={i} style={{width:8,height:16,borderRadius:3,background:i<hits?kid.color:"var(--color-background-secondary)"}}/>)}
+              </div>
+              <span style={{fontSize:11,color:"var(--color-text-secondary)",fontFamily:"sans-serif",minWidth:28,textAlign:"right"}}>{hits+"x"}</span>
+            </div>
+          );
+        })}
+
+        {/* Streak and forward look */}
         <div style={{background:"rgba(99,102,241,0.08)",border:"1px solid rgba(99,102,241,0.2)",borderRadius:14,padding:"14px 16px",marginTop:8}}>
-          <p style={{fontSize:11,fontWeight:700,color:"#6366F1",letterSpacing:1.5,margin:"0 0 6px",fontFamily:"sans-serif",textTransform:"uppercase"}}>Summer projection</p>
-          <p style={{fontSize:14,color:"var(--color-text-primary)",fontFamily:"sans-serif",margin:0,lineHeight:1.6}}>
-            {"At current pace: "+sessions+" sessions completed, projecting "+projectedSessions+" of "+TOTAL_DAYS+" total days by August 15."}
-          </p>
+          <p style={{fontSize:11,fontWeight:700,color:"#6366F1",letterSpacing:1.5,margin:"0 0 8px",fontFamily:"sans-serif",textTransform:"uppercase"}}>Going into this week</p>
+          <p style={{fontSize:14,color:"var(--color-text-primary)",fontFamily:"sans-serif",margin:"0 0 6px",lineHeight:1.6}}>{"Current streak: "+streak+" days."}</p>
+          {kid.focusSubject && (
+            <p style={{fontSize:13,color:"var(--color-text-secondary)",fontFamily:"sans-serif",margin:0,lineHeight:1.5}}>{"Focus subject this week: "+kid.focusSubject+". "+kid.focusReason}</p>
+          )}
         </div>
       </div>
-      <BottomBar onBack={onBack} label={kid.name+" — Roadmap"} sublabel={"Week "+currentWeek+" · Stage "+currentStage+" of 3"} color={kid.color} />
+      <BottomBar onBack={onBack} label={kid.name+" — Weekly Summary"} sublabel={weekLabel} color={kid.color}/>
     </div>
   );
 }
 
 // ─── Kid Dashboard ────────────────────────────────────────────────────────────
-function KidDash({ kidId, progress, onBack, onSession, onRoadmap }) {
+function KidDash({ kidId, progress, onBack, onSession, onRoadmap, onWeeklySummary }) {
   const kid = KIDS[kidId];
   const kp = progress[kidId] || {};
   const str = getStreak(kp);
@@ -731,20 +932,30 @@ function KidDash({ kidId, progress, onBack, onSession, onRoadmap }) {
   const sessions = Object.values(kp).filter(v=>typeof v==="object"&&v.both_done).length;
   const tp = todayPair(kidId);
   const td = kp[todayKey()] || {};
-  const s1 = !!td.subject_1_done;
-  const s2 = !!td.subject_2_done;
-  const bothDone = s1&&s2;
+  const s1=!!td.subject_1_done, s2=!!td.subject_2_done, bothDone=s1&&s2;
+  const showMondaySummary = isTodayMonday();
 
   return (
     <div style={{flex:1,display:"flex",flexDirection:"column",minHeight:0}}>
       <div style={{background:kid.color,padding:"48px 20px 24px",flexShrink:0,position:"relative",overflow:"hidden"}}>
-        <div style={{position:"absolute",top:-40,right:-40,width:140,height:140,borderRadius:"50%",background:"rgba(255,255,255,0.08)"}} />
+        <div style={{position:"absolute",top:-40,right:-40,width:140,height:140,borderRadius:"50%",background:"rgba(255,255,255,0.08)"}}/>
         <p style={{fontSize:11,color:"rgba(255,255,255,0.7)",fontFamily:"sans-serif",letterSpacing:2,margin:"0 0 4px",textTransform:"uppercase"}}>{kid.track}</p>
         <h2 style={{fontSize:26,fontWeight:700,color:"#fff",margin:"0 0 4px",fontFamily:kid.font}}>{kid.name}</h2>
         <p style={{fontSize:13,color:"rgba(255,255,255,0.8)",fontFamily:"sans-serif",margin:0}}>{kid.tagline}</p>
         {str>0&&<div style={{display:"inline-block",marginTop:10,background:"rgba(255,255,255,0.2)",borderRadius:99,padding:"4px 14px"}}><span style={{fontSize:12,color:"#fff",fontFamily:"sans-serif",fontWeight:500}}>{"⚡ "+str+" day streak"}</span></div>}
       </div>
       <div style={{flex:1,overflowY:"auto",padding:"16px 16px 20px"}}>
+        {/* Monday summary prompt */}
+        {showMondaySummary && (
+          <button onClick={onWeeklySummary} style={{display:"flex",alignItems:"center",gap:12,width:"100%",background:"rgba(99,102,241,0.08)",border:"2px solid #6366F1",borderRadius:14,padding:"14px 16px",cursor:"pointer",marginBottom:14,textAlign:"left"}}>
+            <span style={{fontSize:22}}>📋</span>
+            <div>
+              <p style={{fontSize:14,fontWeight:700,color:"#6366F1",fontFamily:"sans-serif",margin:0}}>Monday check-in — last week's summary</p>
+              <p style={{fontSize:12,color:"var(--color-text-secondary)",fontFamily:"sans-serif",margin:0}}>See what got done, what got missed, and what to focus on this week</p>
+            </div>
+            <span style={{marginLeft:"auto",fontSize:18,color:"#6366F1"}}>→</span>
+          </button>
+        )}
         {kid.focusSubject&&<div style={{background:"rgba(239,68,68,0.08)",border:"1.5px solid rgba(239,68,68,0.3)",borderRadius:14,padding:"12px 16px",marginBottom:10}}>
           <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:4}}>
             <span style={{background:"#DC2626",color:"#fff",fontSize:10,fontWeight:700,letterSpacing:1.5,padding:"2px 8px",borderRadius:99,fontFamily:"sans-serif",textTransform:"uppercase"}}>Focus subject</span>
@@ -766,14 +977,22 @@ function KidDash({ kidId, progress, onBack, onSession, onRoadmap }) {
           </div>
           {!bothDone&&<button onClick={onSession} style={{display:"block",width:"100%",background:kid.color,border:"none",borderRadius:12,padding:"13px 16px",fontSize:15,fontWeight:600,color:"#fff",cursor:"pointer",fontFamily:"sans-serif",textAlign:"center"}}>Start today's session →</button>}
         </div>
-        <button onClick={onRoadmap} style={{display:"flex",alignItems:"center",gap:12,width:"100%",background:"var(--color-background-primary)",border:"1.5px solid "+kid.color,borderRadius:14,padding:"14px 16px",cursor:"pointer",marginBottom:16,textAlign:"left"}}>
-          <span style={{fontSize:22}}>🗺</span>
-          <div>
-            <p style={{fontSize:14,fontWeight:600,color:kid.color,fontFamily:"sans-serif",margin:0}}>View My Roadmap</p>
-            <p style={{fontSize:12,color:"var(--color-text-secondary)",fontFamily:"sans-serif",margin:0}}>{"Stage "+stageNum()+" of 3 · Week "+weekNum()+" · Full lesson plan"}</p>
-          </div>
-          <span style={{marginLeft:"auto",fontSize:18,color:kid.color}}>→</span>
-        </button>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:16}}>
+          <button onClick={onRoadmap} style={{display:"flex",alignItems:"center",gap:10,background:"var(--color-background-primary)",border:"1.5px solid "+kid.color,borderRadius:14,padding:"12px 14px",cursor:"pointer",textAlign:"left"}}>
+            <span style={{fontSize:20}}>🗺</span>
+            <div>
+              <p style={{fontSize:13,fontWeight:600,color:kid.color,fontFamily:"sans-serif",margin:0}}>Roadmap</p>
+              <p style={{fontSize:11,color:"var(--color-text-secondary)",fontFamily:"sans-serif",margin:0}}>{"Stage "+stageNum()+" of 3"}</p>
+            </div>
+          </button>
+          <button onClick={onWeeklySummary} style={{display:"flex",alignItems:"center",gap:10,background:"var(--color-background-primary)",border:"1.5px solid var(--color-border-secondary)",borderRadius:14,padding:"12px 14px",cursor:"pointer",textAlign:"left"}}>
+            <span style={{fontSize:20}}>📋</span>
+            <div>
+              <p style={{fontSize:13,fontWeight:600,color:"var(--color-text-primary)",fontFamily:"sans-serif",margin:0}}>Last Week</p>
+              <p style={{fontSize:11,color:"var(--color-text-secondary)",fontFamily:"sans-serif",margin:0}}>Weekly summary</p>
+            </div>
+          </button>
+        </div>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:16}}>
           {[{l:"Sessions",v:sessions},{l:"Week",v:weekNum()},{l:"Streak",v:str+"d"}].map(s=>(
             <div key={s.l} style={{background:"var(--color-background-primary)",border:"0.5px solid var(--color-border-tertiary)",borderRadius:12,padding:"12px 14px"}}>
@@ -788,7 +1007,7 @@ function KidDash({ kidId, progress, onBack, onSession, onRoadmap }) {
             <p style={{fontSize:12,color:"var(--color-text-secondary)",fontFamily:"sans-serif",margin:0}}>{sessions+"/"+TOTAL_DAYS+" days"}</p>
           </div>
           <div style={{background:"var(--color-background-secondary)",borderRadius:99,height:8,overflow:"hidden"}}>
-            <div style={{width:Math.min(100,Math.round((sessions/TOTAL_DAYS)*100))+"%",height:"100%",background:kid.color,borderRadius:99}} />
+            <div style={{width:Math.min(100,Math.round((sessions/TOTAL_DAYS)*100))+"%",height:"100%",background:kid.color,borderRadius:99}}/>
           </div>
         </div>
         <div style={{background:"var(--color-background-primary)",border:"0.5px solid var(--color-border-tertiary)",borderRadius:12,padding:"14px 16px"}}>
@@ -802,7 +1021,7 @@ function KidDash({ kidId, progress, onBack, onSession, onRoadmap }) {
           </div>
         </div>
       </div>
-      <BottomBar onBack={onBack} label={kid.name} sublabel={kid.grade} color={kid.color} />
+      <BottomBar onBack={onBack} label={kid.name} sublabel={kid.grade} color={kid.color}/>
     </div>
   );
 }
@@ -824,12 +1043,12 @@ function DayDetail({ kidId, dayData, dateStr, onBack }) {
       <div style={{flex:1,overflowY:"auto",padding:"16px 16px 20px"}}>
         <div style={{background:dayData.both_done?"rgba(34,197,94,0.1)":"rgba(245,158,11,0.08)",border:"1.5px solid "+(dayData.both_done?"#22C55E":"#F59E0B"),borderRadius:14,padding:"14px 16px",marginBottom:16}}>
           <p style={{fontSize:13,fontWeight:700,color:dayData.both_done?"#16A34A":"#92400E",fontFamily:"sans-serif",margin:"0 0 4px"}}>{dayData.both_done?"Both subjects completed ✓":"Partially completed"}</p>
-          <p style={{fontSize:12,color:"var(--color-text-secondary)",fontFamily:"sans-serif",margin:0}}>{"Stage "+dayData.stage+" — "+stageName(dayData.stage||1)+" · Week "+dayData.week}</p>
+          <p style={{fontSize:12,color:"var(--color-text-secondary)",fontFamily:"sans-serif",margin:0}}>{"Stage "+(dayData.stage||1)+" — "+stageName(dayData.stage||1)+" · Week "+(dayData.week||1)}</p>
         </div>
         {pair.map((sub,i)=>{
-          const done = i===0?dayData.subject_1_done:dayData.subject_2_done;
-          const retention = i===0?dayData.subject_1_retention:dayData.subject_2_retention;
-          return(
+          const done=i===0?dayData.subject_1_done:dayData.subject_2_done;
+          const retention=i===0?dayData.subject_1_retention:dayData.subject_2_retention;
+          return (
             <div key={sub} style={{background:"var(--color-background-primary)",border:"0.5px solid var(--color-border-tertiary)",borderRadius:14,padding:"14px 16px",marginBottom:12}}>
               <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
                 <div style={{display:"flex",alignItems:"center",gap:10}}>
@@ -844,7 +1063,7 @@ function DayDetail({ kidId, dayData, dateStr, onBack }) {
                   <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
                     {STEPS.map(st=>{
                       const stepData=retention[st.id];
-                      return(
+                      return (
                         <div key={st.id} style={{display:"flex",flexDirection:"column",alignItems:"center",gap:2}}>
                           <div style={{width:32,height:32,borderRadius:"50%",background:stepData?st.color:"var(--color-background-secondary)",border:"2px solid "+(stepData?st.color:"var(--color-border-tertiary)"),display:"flex",alignItems:"center",justifyContent:"center"}}>
                             <span style={{fontSize:13}}>{stepData?st.icon:"·"}</span>
@@ -864,13 +1083,13 @@ function DayDetail({ kidId, dayData, dateStr, onBack }) {
           );
         })}
       </div>
-      <BottomBar onBack={onBack} label={label} color={kid.color} />
+      <BottomBar onBack={onBack} label={label} color={kid.color}/>
     </div>
   );
 }
 
 // ─── Parent Dashboard ─────────────────────────────────────────────────────────
-function ParentDash({ progress, onBack, onRoadmap }) {
+function ParentDash({ progress, lastSync, onBack, onRoadmap, onWeeklySummary }) {
   const today = todayKey();
   const [selectedDay, setSelectedDay] = useState(null);
   const [selectedKid, setSelectedKid] = useState(null);
@@ -878,7 +1097,7 @@ function ParentDash({ progress, onBack, onRoadmap }) {
   if (selectedDay && selectedKid) {
     return (
       <div style={{maxWidth:520,margin:"0 auto",minHeight:"100dvh",display:"flex",flexDirection:"column"}}>
-        <DayDetail kidId={selectedKid} dayData={progress[selectedKid]?.[selectedDay]} dateStr={selectedDay} onBack={()=>{setSelectedDay(null);setSelectedKid(null);}} />
+        <DayDetail kidId={selectedKid} dayData={progress[selectedKid]?.[selectedDay]} dateStr={selectedDay} onBack={()=>{setSelectedDay(null);setSelectedKid(null);}}/>
       </div>
     );
   }
@@ -886,19 +1105,23 @@ function ParentDash({ progress, onBack, onRoadmap }) {
   return (
     <div style={{flex:1,display:"flex",flexDirection:"column",minHeight:0}}>
       <div style={{background:"#0F172A",padding:"48px 20px 24px",flexShrink:0}}>
-        <p style={{fontSize:11,color:"rgba(255,255,255,0.5)",fontFamily:"sans-serif",letterSpacing:2,margin:"0 0 4px",textTransform:"uppercase"}}>Parent View</p>
-        <h2 style={{fontSize:24,fontWeight:600,color:"#fff",margin:"0 0 2px",fontFamily:"sans-serif"}}>Monitoring Dashboard</h2>
-        <p style={{fontSize:12,color:"rgba(255,255,255,0.6)",fontFamily:"sans-serif",margin:0}}>{"Week "+weekNum()+" · Stage "+stageNum()+" — "+stageName(stageNum())+" · Real-time sync"}</p>
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:4}}>
+          <div>
+            <p style={{fontSize:11,color:"rgba(255,255,255,0.5)",fontFamily:"sans-serif",letterSpacing:2,margin:"0 0 4px",textTransform:"uppercase"}}>Parent View</p>
+            <h2 style={{fontSize:24,fontWeight:600,color:"#fff",margin:0,fontFamily:"sans-serif"}}>Dashboard</h2>
+          </div>
+          <SyncBadge lastSync={lastSync}/>
+        </div>
+        <p style={{fontSize:12,color:"rgba(255,255,255,0.6)",fontFamily:"sans-serif",margin:"4px 0 0"}}>{"Week "+weekNum()+" · Stage "+stageNum()+" — "+stageName(stageNum())}</p>
       </div>
       <div style={{flex:1,overflowY:"auto",padding:"16px 16px 20px"}}>
-
         {/* Today at a glance */}
         <div style={{background:"var(--color-background-primary)",border:"0.5px solid var(--color-border-tertiary)",borderRadius:16,padding:"16px 18px",marginBottom:16}}>
           <p style={{fontSize:11,fontWeight:700,color:"var(--color-text-secondary)",letterSpacing:1.5,margin:"0 0 14px",fontFamily:"sans-serif",textTransform:"uppercase"}}>{"Today — "+today}</p>
           {["madison","garith"].map(kidId=>{
             const kid=KIDS[kidId],kp=progress[kidId]||{},td=kp[today]||{},pair=todayPair(kidId);
             const s1=!!td.subject_1_done,s2=!!td.subject_2_done,both=s1&&s2,neither=!s1&&!s2;
-            return(
+            return (
               <div key={kidId} style={{display:"flex",alignItems:"center",gap:12,padding:"12px 0",borderBottom:"0.5px solid var(--color-border-tertiary)"}}>
                 <div style={{width:44,height:44,borderRadius:"50%",background:both?"rgba(34,197,94,0.15)":kid.light,border:"2px solid "+(both?"#22C55E":kid.color),display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
                   <span style={{fontSize:18}}>{both?"✓":kid.emoji}</span>
@@ -917,26 +1140,32 @@ function ParentDash({ progress, onBack, onRoadmap }) {
           })}
         </div>
 
-        {/* Roadmap quick links */}
+        {/* Quick nav grid */}
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:16}}>
           {["madison","garith"].map(kidId=>{
             const kid=KIDS[kidId];
-            return(
-              <button key={kidId} onClick={()=>onRoadmap(kidId)} style={{background:kid.light,border:"1.5px solid "+kid.color,borderRadius:14,padding:"14px 12px",cursor:"pointer",textAlign:"left"}}>
-                <p style={{fontSize:12,fontWeight:700,color:kid.color,fontFamily:"sans-serif",margin:"0 0 2px"}}>{"🗺 "+kid.name}</p>
-                <p style={{fontSize:11,color:"var(--color-text-secondary)",fontFamily:"sans-serif",margin:0}}>View roadmap →</p>
-              </button>
+            return (
+              <div key={kidId} style={{display:"flex",flexDirection:"column",gap:8}}>
+                <button onClick={()=>onRoadmap(kidId)} style={{background:kid.light,border:"1.5px solid "+kid.color,borderRadius:12,padding:"12px",cursor:"pointer",textAlign:"left"}}>
+                  <p style={{fontSize:11,fontWeight:700,color:kid.color,fontFamily:"sans-serif",margin:"0 0 1px"}}>{"🗺 "+kid.name}</p>
+                  <p style={{fontSize:10,color:"var(--color-text-secondary)",fontFamily:"sans-serif",margin:0}}>View roadmap →</p>
+                </button>
+                <button onClick={()=>onWeeklySummary(kidId)} style={{background:"var(--color-background-secondary)",border:"1px solid var(--color-border-tertiary)",borderRadius:12,padding:"12px",cursor:"pointer",textAlign:"left"}}>
+                  <p style={{fontSize:11,fontWeight:700,color:"var(--color-text-primary)",fontFamily:"sans-serif",margin:"0 0 1px"}}>{"📋 Last week"}</p>
+                  <p style={{fontSize:10,color:"var(--color-text-secondary)",fontFamily:"sans-serif",margin:0}}>Weekly summary →</p>
+                </button>
+              </div>
             );
           })}
         </div>
 
-        {/* Per-kid detail with tappable history */}
+        {/* Per-kid detail */}
         {["madison","garith"].map(kidId=>{
           const kid=KIDS[kidId],kp=progress[kidId]||{};
           const sessions=Object.values(kp).filter(v=>typeof v==="object"&&v.both_done).length;
           const str=getStreak(kp),l14=getLast14(kp);
           const subCounts=kid.subjects.reduce((acc,s)=>{acc[s]=Object.values(kp).filter(v=>typeof v==="object"&&(v.subject_1===s&&v.subject_1_done||v.subject_2===s&&v.subject_2_done)).length;return acc;},{});
-          return(
+          return (
             <div key={kidId} style={{background:"var(--color-background-primary)",border:"0.5px solid var(--color-border-tertiary)",borderRadius:16,marginBottom:16,overflow:"hidden"}}>
               <div style={{background:kid.color,padding:"14px 18px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
                 <div>
@@ -960,10 +1189,10 @@ function ParentDash({ progress, onBack, onRoadmap }) {
                     </div>
                   ))}
                 </div>
-                <p style={{fontSize:10,color:"var(--color-text-secondary)",fontFamily:"sans-serif",letterSpacing:1.5,margin:"0 0 8px",textTransform:"uppercase"}}>Last 14 Days — tap any day for detail</p>
+                <p style={{fontSize:10,color:"var(--color-text-secondary)",fontFamily:"sans-serif",letterSpacing:1.5,margin:"0 0 8px",textTransform:"uppercase"}}>Last 14 Days — tap any completed day</p>
                 <div style={{display:"grid",gridTemplateColumns:"repeat(14, 1fr)",gap:4,marginBottom:14}}>
                   {l14.map(d=>(
-                    <button key={d.k} onClick={()=>{if(d.done||d.today){setSelectedDay(d.k);setSelectedKid(kidId);}}} style={{aspectRatio:"1",borderRadius:4,background:d.done?kid.color:d.today?kid.light:"var(--color-background-secondary)",border:d.today?"2px solid "+kid.color:"none",cursor:d.done?"pointer":"default",padding:0}} title={d.done?"Tap for detail":d.today?"Today":""} />
+                    <button key={d.k} onClick={()=>{if(d.done||d.today){setSelectedDay(d.k);setSelectedKid(kidId);}}} style={{aspectRatio:"1",borderRadius:4,background:d.done?kid.color:d.today?kid.light:"var(--color-background-secondary)",border:d.today?"2px solid "+kid.color:"none",cursor:d.done?"pointer":"default",padding:0}} title={d.done?"Tap for detail":d.today?"Today":""}/>
                   ))}
                 </div>
                 <p style={{fontSize:10,color:"var(--color-text-secondary)",fontFamily:"sans-serif",letterSpacing:1.5,margin:"0 0 8px",textTransform:"uppercase"}}>Subject Coverage</p>
@@ -973,7 +1202,7 @@ function ParentDash({ progress, onBack, onRoadmap }) {
                       <p style={{fontSize:12,color:"var(--color-text-primary)",fontFamily:"sans-serif",margin:0,flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{sub}</p>
                       <div style={{display:"flex",gap:4,alignItems:"center",flexShrink:0}}>
                         {sub===kid.focusSubject&&<span style={{fontSize:9,color:"#DC2626",fontFamily:"sans-serif",fontWeight:700}}>FOCUS</span>}
-                        <div style={{width:8,height:8,borderRadius:"50%",background:subCounts[sub]>0?kid.color:"var(--color-background-secondary)",border:"1px solid "+(subCounts[sub]>0?kid.color:"var(--color-border-tertiary)")}} />
+                        <div style={{width:8,height:8,borderRadius:"50%",background:subCounts[sub]>0?kid.color:"var(--color-background-secondary)",border:"1px solid "+(subCounts[sub]>0?kid.color:"var(--color-border-tertiary)")}}/>
                         <span style={{fontSize:10,color:"var(--color-text-secondary)",fontFamily:"sans-serif",minWidth:12}}>{subCounts[sub]}</span>
                       </div>
                     </div>
@@ -984,7 +1213,7 @@ function ParentDash({ progress, onBack, onRoadmap }) {
           );
         })}
       </div>
-      <BottomBar onBack={onBack} label="Parent Dashboard" sublabel={"Week "+weekNum()+" · Stage "+stageNum()} color="#4C1D95" />
+      <BottomBar onBack={onBack} label="Parent Dashboard" sublabel={"Week "+weekNum()+" · Stage "+stageNum()} color="#4C1D95"/>
     </div>
   );
 }
@@ -995,29 +1224,34 @@ function PinScreen({ title, subtitle, expected, onOk, onCancel }) {
   const [shake, setShake] = useState(false);
   const [err, setErr] = useState(false);
   const len = expected.length;
+
   function press(v) {
     if (entered.length>=len) return;
     const next=entered+v; setEntered(next); setErr(false);
-    if (next.length===len) { if(next===expected){setTimeout(onOk,200);}else{setShake(true);setErr(true);setTimeout(()=>{setShake(false);setEntered("");},700);} }
+    if (next.length===len) {
+      if(next===expected){setTimeout(onOk,200);}
+      else{setShake(true);setErr(true);setTimeout(()=>{setShake(false);setEntered("");},700);}
+    }
   }
+
   return (
     <div style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"0 32px"}}>
       <div style={{width:50,height:50,borderRadius:"50%",background:"#0F172A",display:"flex",alignItems:"center",justifyContent:"center",marginBottom:20}}><span style={{fontSize:22,color:"#94A3B8"}}>◈</span></div>
       <h2 style={{fontSize:22,fontWeight:600,color:"var(--color-text-primary)",margin:"0 0 6px",fontFamily:"sans-serif"}}>{title}</h2>
       <p style={{fontSize:13,color:"var(--color-text-secondary)",fontFamily:"sans-serif",margin:"0 0 32px",textAlign:"center"}}>{subtitle}</p>
       <div style={{display:"flex",gap:10,marginBottom:36,animation:shake?"shake 0.5s ease":"none"}}>
-        {Array.from({length:len},(_,i)=><div key={i} style={{width:13,height:13,borderRadius:"50%",background:i<entered.length?(err?"#EF4444":"#0F172A"):"var(--color-background-secondary)",border:"2px solid "+(err?"#EF4444":i<entered.length?"#0F172A":"var(--color-border-secondary)"),transition:"all 0.15s"}} />)}
+        {Array.from({length:len},(_,i)=><div key={i} style={{width:13,height:13,borderRadius:"50%",background:i<entered.length?(err?"#EF4444":"#0F172A"):"var(--color-background-secondary)",border:"2px solid "+(err?"#EF4444":i<entered.length?"#0F172A":"var(--color-border-secondary)"),transition:"all 0.15s"}}/>)}
       </div>
       {err&&<p style={{fontSize:12,color:"#EF4444",fontFamily:"sans-serif",margin:"-20px 0 20px",fontWeight:600}}>Incorrect PIN</p>}
       <div style={{display:"grid",gridTemplateColumns:"repeat(3, 72px)",gap:12,marginBottom:20}}>
         {["1","2","3","4","5","6","7","8","9","","0","⌫"].map((k,i)=>
-          k===""?<div key={i} />:k==="⌫"?
+          k===""?<div key={i}/>:k==="⌫"?
           <button key={i} onClick={()=>{setEntered(e=>e.slice(0,-1));setErr(false);}} style={{height:72,borderRadius:16,background:"var(--color-background-secondary)",border:"0.5px solid var(--color-border-secondary)",fontSize:22,cursor:"pointer",color:"var(--color-text-secondary)",display:"flex",alignItems:"center",justifyContent:"center"}}>⌫</button>:
           <button key={i} onClick={()=>press(k)} style={{height:72,borderRadius:16,background:"var(--color-background-primary)",border:"0.5px solid var(--color-border-secondary)",fontSize:22,fontWeight:500,cursor:"pointer",color:"var(--color-text-primary)",fontFamily:"sans-serif"}}>{k}</button>
         )}
       </div>
       <button onClick={onCancel} style={{background:"none",border:"none",fontSize:13,color:"var(--color-text-secondary)",fontFamily:"sans-serif",cursor:"pointer",padding:"8px 16px"}}>Cancel</button>
-      <style>{"@keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-8px)}40%{transform:translateX(8px)}60%{transform:translateX(-6px)}80%{transform:translateX(6px)}}"}</style>
+      
     </div>
   );
 }
@@ -1030,8 +1264,25 @@ export default function App() {
   const [pinTarget, setPinTarget] = useState(null);
   const [progress, setProgress] = useState({madison:{},garith:{},demo:{}});
   const [roadmapKid, setRoadmapKid] = useState(null);
+  const [summaryKid, setSummaryKid] = useState(null);
+  const [lastSync, setLastSync] = useState(null);
+
+  useEffect(() => {
+    const style = document.createElement('style');
+    style.textContent = '@keyframes pulse{0%,100%{opacity:0.3;transform:scale(0.8)}50%{opacity:1;transform:scale(1)}} @keyframes blink{0%,100%{opacity:1}50%{opacity:0.3}} @keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-8px)}40%{transform:translateX(8px)}60%{transform:translateX(-6px)}80%{transform:translateX(6px)}} @keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}';
+    document.head.appendChild(style);
+    return () => document.head.removeChild(style);
+  }, []);
+
+
 
   useEffect(()=>{ loadProgress().then(p=>setProgress(p)); },[]);
+
+  // Polling sync — refreshes progress every 30 seconds
+  usePollingSync(() => {
+    loadProgress().then(p => { setProgress(p); setLastSync(Date.now()); });
+  });
+
 
   async function markDone(kidId, subject, correct, retention) {
     if (kidId==="demo") return;
@@ -1039,29 +1290,19 @@ export default function App() {
     const pair=todayPair(kidId);
     const kp=progress[kidId]||{};
     const ex=kp[today2]||{};
-    const isFirst = subject===pair[0];
-    const update = {
-      subject_1: pair[0],
-      subject_2: pair[1],
-      stage: stageNum(),
-      week: weekNum(),
-    };
+    const isFirst=subject===pair[0];
+    const update = { subject_1:pair[0], subject_2:pair[1], stage:stageNum(), week:weekNum() };
     if (subject.startsWith("spaced_")) {
       const np={...progress,[kidId]:{...kp,[today2]:{...ex,...update}}};
       setProgress(np); return;
     }
-    if (isFirst) {
-      update.subject_1_done = true;
-      if (retention) update.subject_1_retention = retention;
-    } else {
-      update.subject_2_done = true;
-      if (retention) update.subject_2_retention = retention;
-    }
-    const s1 = isFirst?true:!!ex.subject_1_done;
-    const s2 = isFirst?!!ex.subject_2_done:true;
-    if (s1&&s2) update.both_done = true;
-    const merged = {...ex,...update};
-    const np = {...progress,[kidId]:{...kp,[today2]:merged}};
+    if (isFirst) { update.subject_1_done=true; if(retention) update.subject_1_retention=retention; }
+    else { update.subject_2_done=true; if(retention) update.subject_2_retention=retention; }
+    const s1=isFirst?true:!!ex.subject_1_done;
+    const s2=isFirst?!!ex.subject_2_done:true;
+    if (s1&&s2) update.both_done=true;
+    const merged={...ex,...update};
+    const np={...progress,[kidId]:{...kp,[today2]:merged}};
     setProgress(np);
     await saveDay(kidId, today2, merged);
   }
@@ -1072,44 +1313,45 @@ export default function App() {
     </div>
   );
 
-  if (splash) return <>{wrap(<div/>)}<Splash onDone={()=>setSplash(false)} /></>;
+  if (splash) return wrap(<Splash onDone={()=>setSplash(false)}/>);
 
-  if (screen==="kidpin") return wrap(<PinScreen title={KIDS[pinTarget]?.name+"'s Account"} subtitle="Enter your personal PIN." expected={PINS[pinTarget]} onOk={()=>{setActiveKid(pinTarget);setScreen("dash");}} onCancel={()=>{setPinTarget(null);setScreen("home");}} />);
-  if (screen==="parentpin") return wrap(<PinScreen title="Parent Access" subtitle="Enter your PIN to view the monitoring dashboard." expected={PINS.parent} onOk={()=>setScreen("parent")} onCancel={()=>setScreen("home")} />);
-  if (screen==="parent") return wrap(<ParentDash progress={progress} onBack={()=>setScreen("home")} onRoadmap={kidId=>{setRoadmapKid(kidId);setScreen("roadmap");}} />);
-  if (screen==="roadmap"&&roadmapKid) return wrap(<Roadmap kidId={roadmapKid} progress={progress} onBack={()=>{setScreen(activeKid===roadmapKid?"dash":"parent");}} />);
-  if (screen==="dash"&&activeKid) return wrap(<KidDash kidId={activeKid} progress={progress} onBack={()=>{setScreen("home");setActiveKid(null);}} onSession={()=>setScreen("session")} onRoadmap={()=>{setRoadmapKid(activeKid);setScreen("roadmap");}} />);
-  if (screen==="session"&&activeKid) return wrap(<Session kidId={activeKid} kidProg={progress[activeKid]||{}} onDone={(sub,correct,ret)=>markDone(activeKid,sub,correct,ret)} onBack={()=>setScreen("dash")} />);
+  if (screen==="kidpin") return wrap(<PinScreen title={KIDS[pinTarget]?.name+"'s Account"} subtitle="Enter your personal PIN." expected={PINS[pinTarget]} onOk={()=>{setActiveKid(pinTarget);setScreen(roadmapKid?"roadmap":"dash");}} onCancel={()=>{setPinTarget(null);setScreen("home");}}/>);
+  if (screen==="parentpin") return wrap(<PinScreen title="Parent Access" subtitle="Enter your PIN to view the monitoring dashboard." expected={PINS.parent} onOk={()=>setScreen("parent")} onCancel={()=>setScreen("home")}/>);
+  if (screen==="parent") return wrap(<ParentDash progress={progress} lastSync={lastSync} onBack={()=>setScreen("home")} onRoadmap={kidId=>{setRoadmapKid(kidId);setScreen("roadmap");}} onWeeklySummary={kidId=>{setSummaryKid(kidId);setScreen("weekly");}}/>);
+  if (screen==="roadmap"&&roadmapKid) return wrap(<Roadmap kidId={roadmapKid} progress={progress} onBack={()=>{if(activeKid){setScreen("dash");}else{setRoadmapKid(null);setScreen("parent");}}} onStartSession={()=>{setActiveKid(roadmapKid);setScreen("session");}}/>);
+  if (screen==="weekly"&&summaryKid) return wrap(<WeeklySummary kidId={summaryKid} progress={progress} onBack={()=>{if(activeKid){setScreen("dash");}else{setScreen("parent");}}}/>);
+  if (screen==="dash"&&activeKid) return wrap(<KidDash kidId={activeKid} progress={progress} onBack={()=>{setScreen("home");setActiveKid(null);}} onSession={()=>setScreen("session")} onRoadmap={()=>{setRoadmapKid(activeKid);setScreen("roadmap");}} onWeeklySummary={()=>{setSummaryKid(activeKid);setScreen("weekly");}}/>);
+  if (screen==="session"&&activeKid) return wrap(<Session kidId={activeKid} kidProg={progress[activeKid]||{}} onDone={(sub,correct,ret)=>markDone(activeKid,sub,correct,ret)} onBack={()=>setScreen("dash")}/>);
 
   // ─── Home ──────────────────────────────────────────────────────────────────
   return wrap(
     <div style={{flex:1,padding:"48px 24px 32px",display:"flex",flexDirection:"column",animation:"fadeIn 0.4s ease"}}>
-      <style>{"@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}"}</style>
+      
       <p style={{fontSize:13,color:"var(--color-text-secondary)",fontFamily:"Georgia,serif",fontStyle:"italic",margin:"0 0 4px",letterSpacing:0.5}}>Madison & Garith</p>
       <h1 style={{fontSize:34,fontWeight:600,color:"var(--color-text-primary)",margin:"0 0 4px",fontFamily:"Georgia,serif",letterSpacing:"-1px"}}>Summer 2026</h1>
-      <p style={{fontSize:15,color:"var(--color-text-secondary)",fontFamily:"sans-serif",margin:"0 0 8px"}}>SC Diploma Prep · Daily Habit System</p>
-      <p style={{fontSize:12,color:"rgba(109,40,217,0.7)",fontFamily:"Georgia,serif",fontStyle:"italic",margin:"0 0 32px",letterSpacing:0.5}}>love, Mom & Dad</p>
+      <p style={{fontSize:15,color:"var(--color-text-secondary)",fontFamily:"sans-serif",margin:"0 0 4px"}}>SC Diploma Prep · Daily Habit System</p>
+      <p style={{fontSize:12,color:"rgba(109,40,217,0.7)",fontFamily:"Georgia,serif",fontStyle:"italic",margin:"0 0 28px",letterSpacing:0.5}}>love, Mom & Dad</p>
 
       {/* Roadmap quick access */}
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:16}}>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:14}}>
         {["madison","garith"].map(kidId=>{
           const kid=KIDS[kidId];
-          return(
-            <button key={kidId} onClick={()=>{setRoadmapKid(kidId);setScreen("roadmap");}} style={{background:"linear-gradient(135deg,"+kid.color+",#0F172A)",border:"none",borderRadius:14,padding:"14px 14px",cursor:"pointer",textAlign:"left"}}>
-              <p style={{fontSize:12,fontWeight:700,color:"rgba(255,255,255,0.7)",fontFamily:"sans-serif",margin:"0 0 2px",textTransform:"uppercase",letterSpacing:1}}>🗺 Roadmap</p>
+          return (
+            <button key={kidId} onClick={()=>{setRoadmapKid(kidId);setPinTarget(kidId);setScreen("kidpin");}} style={{background:"linear-gradient(135deg,"+kid.color+",#0F172A)",border:"none",borderRadius:14,padding:"14px 14px",cursor:"pointer",textAlign:"left"}}>
+              <p style={{fontSize:11,fontWeight:700,color:"rgba(255,255,255,0.7)",fontFamily:"sans-serif",margin:"0 0 2px",textTransform:"uppercase",letterSpacing:1}}>🗺 Roadmap</p>
               <p style={{fontSize:14,fontWeight:700,color:"#fff",fontFamily:kid.font,margin:0}}>{kid.name}</p>
             </button>
           );
         })}
       </div>
 
-      <div style={{display:"flex",flexDirection:"column",gap:12,marginBottom:16}}>
+      <div style={{display:"flex",flexDirection:"column",gap:12,marginBottom:14}}>
         {["madison","garith","demo"].map(kidId=>{
           const k=KIDS[kidId],kp=progress[kidId]||{};
           const sessions=Object.values(kp).filter(v=>typeof v==="object"&&v.both_done).length;
           const str=getStreak(kp),td=kp[todayKey()]||{};
           const s1=!!td.subject_1_done,s2=!!td.subject_2_done,both=s1&&s2,partial=(s1||s2)&&!both;
-          return(
+          return (
             <button key={kidId} onClick={()=>{if(k.isDemo){setActiveKid("demo");setScreen("dash");}else{setPinTarget(kidId);setScreen("kidpin");}}} style={{background:"var(--color-background-primary)",border:"2px solid "+(both?"#22C55E":partial?"#F59E0B":k.isDemo?"rgba(109,40,217,0.4)":"var(--color-border-secondary)"),borderRadius:16,padding:"18px 20px",cursor:"pointer",textAlign:"left",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
               <div style={{display:"flex",alignItems:"center",gap:14}}>
                 <div style={{width:50,height:50,borderRadius:"50%",background:both?"rgba(34,197,94,0.12)":k.light,border:"2px solid "+(both?"#22C55E":k.color),display:"flex",alignItems:"center",justifyContent:"center"}}>
@@ -1131,14 +1373,15 @@ export default function App() {
           );
         })}
       </div>
-      <button onClick={()=>setScreen("parentpin")} style={{display:"flex",alignItems:"center",gap:12,background:"var(--color-background-secondary)",border:"0.5px solid var(--color-border-tertiary)",borderRadius:16,padding:"16px 20px",cursor:"pointer",textAlign:"left",width:"100%"}}>
+
+      <button onClick={()=>setScreen("parentpin")} style={{display:"flex",alignItems:"center",gap:12,background:"var(--color-background-secondary)",border:"0.5px solid var(--color-border-tertiary)",borderRadius:16,padding:"16px 20px",cursor:"pointer",textAlign:"left",width:"100%",boxSizing:"border-box"}}>
         <div style={{width:44,height:44,borderRadius:"50%",background:"#0F172A",display:"flex",alignItems:"center",justifyContent:"center"}}><span style={{fontSize:18,color:"#94A3B8"}}>◈</span></div>
         <div>
           <p style={{fontSize:14,fontWeight:600,color:"var(--color-text-primary)",margin:"0 0 2px",fontFamily:"sans-serif"}}>Parent Dashboard</p>
           <p style={{fontSize:12,color:"var(--color-text-secondary)",fontFamily:"sans-serif",margin:0}}>Real-time monitoring · PIN protected</p>
         </div>
       </button>
-      <p style={{fontSize:11,color:"var(--color-text-tertiary)",fontFamily:"sans-serif",margin:"20px 0 0",lineHeight:1.6,textAlign:"center"}}>SC Standard Diploma requires 24 credits.<br />Every session builds toward that goal.</p>
+      <p style={{fontSize:11,color:"var(--color-text-tertiary)",fontFamily:"sans-serif",margin:"20px 0 0",lineHeight:1.6,textAlign:"center"}}>SC Standard Diploma requires 24 credits. Every session builds toward that goal.</p>
     </div>
   );
 }
