@@ -702,6 +702,16 @@ function Session({ kidId, kidProg, onDone, onBack }) {
 function Roadmap({ kidId, progress, onBack, onStartSession }) {
   const kid = KIDS[kidId];
   const kp = progress[kidId] || {};
+  const missedDays = (() => {
+    const missed = [];
+    const today = new Date(); today.setHours(0,0,0,0);
+    const start = new Date(SUMMER_START.getTime ? SUMMER_START : new Date('2026-06-02'));
+    for(let d=new Date(start); d<today; d.setDate(d.getDate()+1)){
+      const k=d.toISOString().slice(0,10);
+      if(!kp[k]?.both_done) missed.push(k);
+    }
+    return missed.slice(-30); // cap at 30 most recent
+  })();
   const sessions = Object.values(kp).filter(v=>typeof v==="object"&&v.both_done).length;
   const currentStage = stageNum();
   const currentWeek = weekNum();
@@ -822,6 +832,16 @@ function Roadmap({ kidId, progress, onBack, onStartSession }) {
 function WeeklySummary({ kidId, progress, onBack }) {
   const kid = KIDS[kidId];
   const kp = progress[kidId] || {};
+  const missedDays = (() => {
+    const missed = [];
+    const today = new Date(); today.setHours(0,0,0,0);
+    const start = new Date(SUMMER_START.getTime ? SUMMER_START : new Date('2026-06-02'));
+    for(let d=new Date(start); d<today; d.setDate(d.getDate()+1)){
+      const k=d.toISOString().slice(0,10);
+      if(!kp[k]?.both_done) missed.push(k);
+    }
+    return missed.slice(-30); // cap at 30 most recent
+  })();
   const { start, end } = getPrevWeekRange();
   const keys = dateRangeKeys(start, end);
   const weekDays = keys.map(k=>{
@@ -924,9 +944,19 @@ function WeeklySummary({ kidId, progress, onBack }) {
 }
 
 // ─── Kid Dashboard ────────────────────────────────────────────────────────────
-function KidDash({ kidId, progress, onBack, onSession, onRoadmap, onWeeklySummary }) {
+function KidDash({ kidId, progress, onBack, onSession, onRoadmap, onWeeklySummary, onCatchUp }) {
   const kid = KIDS[kidId];
   const kp = progress[kidId] || {};
+  const missedDays = (() => {
+    const missed = [];
+    const today = new Date(); today.setHours(0,0,0,0);
+    const start = new Date(SUMMER_START.getTime ? SUMMER_START : new Date('2026-06-02'));
+    for(let d=new Date(start); d<today; d.setDate(d.getDate()+1)){
+      const k=d.toISOString().slice(0,10);
+      if(!kp[k]?.both_done) missed.push(k);
+    }
+    return missed.slice(-30); // cap at 30 most recent
+  })();
   const str = getStreak(kp);
   const l14 = getLast14(kp);
   const sessions = Object.values(kp).filter(v=>typeof v==="object"&&v.both_done).length;
@@ -985,6 +1015,13 @@ function KidDash({ kidId, progress, onBack, onSession, onRoadmap, onWeeklySummar
               <p style={{fontSize:11,color:"var(--color-text-secondary)",fontFamily:"sans-serif",margin:0}}>{"Stage "+stageNum()+" of 3"}</p>
             </div>
           </button>
+          {onCatchUp&&missedDays.length>0&&<button onClick={onCatchUp} style={{display:"flex",alignItems:"center",gap:10,background:"rgba(234,88,12,0.06)",border:"1.5px solid #ea580c",borderRadius:14,padding:"12px 14px",cursor:"pointer",textAlign:"left"}}>
+            <span style={{fontSize:20}}>🔄</span>
+            <div>
+              <p style={{fontSize:14,fontWeight:600,color:"#ea580c",fontFamily:"sans-serif",margin:0}}>Catch Up</p>
+              <p style={{fontSize:12,color:"var(--color-text-secondary)",fontFamily:"sans-serif",margin:0}}>{missedDays.length+" missed day"+(missedDays.length!==1?"s":"")}</p>
+            </div>
+          </button>}
           <button onClick={onWeeklySummary} style={{display:"flex",alignItems:"center",gap:10,background:"var(--color-background-primary)",border:"1.5px solid var(--color-border-secondary)",borderRadius:14,padding:"12px 14px",cursor:"pointer",textAlign:"left"}}>
             <span style={{fontSize:20}}>📋</span>
             <div>
@@ -1089,15 +1126,16 @@ function DayDetail({ kidId, dayData, dateStr, onBack }) {
 }
 
 // ─── Parent Dashboard ─────────────────────────────────────────────────────────
-function ParentDash({ progress, lastSync, onBack, onRoadmap, onWeeklySummary }) {
+function ParentDash({ progress, lastSync, onBack, onRoadmap, onWeeklySummary, onReview }) {
   const today = todayKey();
   const [selectedDay, setSelectedDay] = useState(null);
   const [selectedKid, setSelectedKid] = useState(null);
 
   if (selectedDay && selectedKid) {
+    if (onReview) { onReview(selectedKid, selectedDay); setSelectedDay(null); setSelectedKid(null); return null; }
     return (
       <div style={{maxWidth:520,margin:"0 auto",minHeight:"100dvh",display:"flex",flexDirection:"column"}}>
-        <DayDetail kidId={selectedKid} dayData={progress[selectedKid]?.[selectedDay]} dateStr={selectedDay} onBack={()=>{setSelectedDay(null);setSelectedKid(null);}}/>
+        <DayDetail kidId={selectedKid} dayData={progress[selectedKid]?.[selectedDay]} dateStr={selectedDay} onBack={()=>{setSelectedDay(null);setSelectedKid(null);}} />
       </div>
     );
   }
@@ -1256,6 +1294,250 @@ function PinScreen({ title, subtitle, expected, onOk, onCancel }) {
   );
 }
 
+
+// ─── CatchUpSelect ────────────────────────────────────────────────────────────
+function CatchUpSelect({ kidId, progress, onSelect, onBack }) {
+  const kid = KIDS[kidId];
+  const kp = progress[kidId] || {};
+  const today = new Date(); today.setHours(0,0,0,0);
+  const start = new Date('2026-06-02');
+  const missed = [];
+  for(let d=new Date(start); d<today; d.setDate(d.getDate()+1)){
+    const k=d.toISOString().slice(0,10);
+    const entry=kp[k]||{};
+    const bothDone=!!entry.both_done;
+    const s1=!!entry.subject_1_done; const s2=!!entry.subject_2_done;
+    if(!bothDone) missed.push({date:k,s1Done:s1,s2Done:s2,partial:(s1||s2)&&!bothDone});
+  }
+  const recent=missed.slice(-20).reverse();
+  return (
+    <div style={{flex:1,display:"flex",flexDirection:"column",minHeight:0}}>
+      <div style={{background:kid.color,padding:"48px 20px 20px",flexShrink:0}}>
+        <p style={{fontSize:11,color:"rgba(255,255,255,0.7)",fontFamily:"sans-serif",letterSpacing:2,margin:"0 0 4px",textTransform:"uppercase"}}>Catch Up</p>
+        <h2 style={{fontSize:24,fontWeight:700,color:"#fff",margin:"0 0 4px",fontFamily:kid.font}}>{kid.name}</h2>
+        <p style={{fontSize:13,color:"rgba(255,255,255,0.8)",fontFamily:"sans-serif",margin:0}}>{recent.length+" missed session"+(recent.length!==1?"s":"")+" — tap a day to catch up"}</p>
+      </div>
+      <div style={{flex:1,overflowY:"auto",padding:"16px 16px 20px"}}>
+        {recent.length===0&&(
+          <div style={{textAlign:"center",padding:"40px 20px"}}>
+            <p style={{fontSize:32,margin:"0 0 12px"}}>🎯</p>
+            <p style={{fontSize:18,fontWeight:700,color:"var(--color-text-primary)",fontFamily:kid.font,margin:"0 0 8px"}}>All caught up!</p>
+            <p style={{fontSize:14,color:"var(--color-text-secondary)",fontFamily:"sans-serif"}}>No missed sessions to complete.</p>
+          </div>
+        )}
+        {recent.map(({date,s1Done,s2Done,partial})=>{
+          const di=Math.max(0,Math.floor((new Date(date)-new Date('2026-06-02'))/86400000));
+          const pair=PAIRS[kidId][di%PAIRS[kidId].length];
+          const dt=new Date(date);
+          const label=dt.toLocaleDateString("en-US",{weekday:"short",month:"long",day:"numeric"});
+          const missingSubjects=[!s1Done&&pair[0],!s2Done&&pair[1]].filter(Boolean);
+          return(
+            <button key={date} onClick={()=>onSelect(date)} style={{display:"flex",alignItems:"center",gap:14,width:"100%",background:"var(--color-background-primary)",border:"1.5px solid "+(partial?"#F59E0B":"var(--color-border-secondary)"),borderRadius:14,padding:"16px 18px",marginBottom:10,cursor:"pointer",textAlign:"left"}}>
+              <div style={{width:46,height:46,borderRadius:"50%",background:partial?"rgba(245,158,11,0.1)":kid.light,border:"2px solid "+(partial?"#F59E0B":kid.color),display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                <span style={{fontSize:18}}>{partial?"½":"📖"}</span>
+              </div>
+              <div style={{flex:1}}>
+                <p style={{fontSize:15,fontWeight:600,color:"var(--color-text-primary)",margin:"0 0 4px",fontFamily:kid.font}}>{label}</p>
+                <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+                  {missingSubjects.map(s=>(
+                    <span key={s} style={{background:kid.light,color:kid.dark,border:"1px solid "+kid.color,borderRadius:99,padding:"2px 10px",fontSize:11,fontFamily:"sans-serif"}}>{s}</span>
+                  ))}
+                </div>
+                {partial&&<p style={{fontSize:11,color:"#92400E",fontFamily:"sans-serif",margin:"4px 0 0"}}>Partially complete — {missingSubjects.length} subject{missingSubjects.length!==1?"s":""} remaining</p>}
+              </div>
+              <span style={{fontSize:20,color:kid.color}}>→</span>
+            </button>
+          );
+        })}
+      </div>
+      <BottomBar onBack={onBack} label="Catch Up" sublabel={"Select a missed day"} color={kid.color} />
+    </div>
+  );
+}
+
+// ─── CatchUp ──────────────────────────────────────────────────────────────────
+function CatchUp({ kidId, date, progress, onDone, onBack }) {
+  const kid = KIDS[kidId];
+  const kp = progress[kidId] || {};
+  const entry = kp[date] || {};
+  const di = Math.max(0,Math.floor((new Date(date)-new Date('2026-06-02'))/86400000));
+  const pair = PAIRS[kidId][di%PAIRS[kidId].length];
+  const s1Done = !!entry.subject_1_done;
+  const s2Done = !!entry.subject_2_done;
+  const dt = new Date(date);
+  const dateLabel = dt.toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric",year:"numeric"});
+  const stageN = di<14?1:di<28?2:3;
+  const [active, setActive] = useState(null);
+  const [localS1, setLocalS1] = useState(s1Done);
+  const [localS2, setLocalS2] = useState(s2Done);
+
+  if(active){
+    return(
+      <LessonView
+        kidId={kidId}
+        subject={active}
+        alreadyDone={active===pair[0]?localS1:localS2}
+        onBack={()=>setActive(null)}
+        onDone={(sub,correct,ret)=>{
+          onDone(sub,correct,ret);
+          if(sub===pair[0]) setLocalS1(true);
+          else setLocalS2(true);
+          setActive(null);
+        }}
+      />
+    );
+  }
+
+  const bothNowDone = localS1&&localS2;
+
+  return(
+    <div style={{flex:1,display:"flex",flexDirection:"column",minHeight:0}}>
+      <div style={{background:kid.color,padding:"48px 20px 20px",flexShrink:0}}>
+        <p style={{fontSize:11,color:"rgba(255,255,255,0.7)",fontFamily:"sans-serif",letterSpacing:2,margin:"0 0 4px",textTransform:"uppercase"}}>🔄 Catch Up Session</p>
+        <h2 style={{fontSize:22,fontWeight:700,color:"#fff",margin:"0 0 4px",fontFamily:kid.font}}>{dateLabel}</h2>
+        <p style={{fontSize:13,color:"rgba(255,255,255,0.8)",fontFamily:"sans-serif",margin:0}}>{"Stage "+stageN+"  ·  "+[localS1,localS2].filter(Boolean).length+"/2 complete"}</p>
+      </div>
+      <div style={{flex:1,overflowY:"auto",padding:"16px 16px 20px"}}>
+        <div style={{background:"rgba(234,88,12,0.08)",border:"1.5px solid #ea580c",borderRadius:12,padding:"12px 16px",marginBottom:16}}>
+          <p style={{fontSize:13,color:"#9a3412",fontFamily:"sans-serif",margin:0,lineHeight:1.6}}>
+            {"Complete any missing subjects below. Your progress will be saved to "+dateLabel+"."}
+          </p>
+        </div>
+        {pair.map((sub,i)=>{
+          const done=i===0?localS1:localS2;
+          return(
+            <button key={sub} onClick={()=>!done&&setActive(sub)} style={{display:"flex",alignItems:"center",gap:14,width:"100%",background:done?"rgba(34,197,94,0.08)":"var(--color-background-primary)",border:"2px solid "+(done?"#22C55E":kid.color),borderRadius:14,padding:"16px 18px",marginBottom:12,cursor:done?"default":"pointer",textAlign:"left"}}>
+              <div style={{width:46,height:46,borderRadius:"50%",background:done?"rgba(34,197,94,0.15)":kid.light,border:"2px solid "+(done?"#22C55E":kid.color),display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                <span style={{fontSize:20}}>{done?"✓":C[sub]?.icon}</span>
+              </div>
+              <div style={{flex:1}}>
+                <p style={{fontSize:16,fontWeight:600,color:done?"#16A34A":"var(--color-text-primary)",margin:"0 0 2px",fontFamily:kid.font}}>{sub}</p>
+                <p style={{fontSize:12,color:"var(--color-text-secondary)",fontFamily:"sans-serif",margin:0}}>{done?"Complete ✓":"Tap to complete this subject"}</p>
+              </div>
+              {!done&&<span style={{fontSize:20,color:kid.color}}>→</span>}
+            </button>
+          );
+        })}
+        {bothNowDone&&(
+          <div style={{background:"rgba(34,197,94,0.1)",border:"2px solid #22C55E",borderRadius:14,padding:"20px",textAlign:"center",marginTop:8}}>
+            <p style={{fontSize:28,margin:"0 0 8px"}}>🎯</p>
+            <p style={{fontSize:17,fontWeight:700,color:"#16A34A",fontFamily:kid.font,margin:"0 0 4px"}}>Catch up complete!</p>
+            <p style={{fontSize:13,color:"var(--color-text-secondary)",fontFamily:"sans-serif",margin:0}}>This session is now saved to your progress record.</p>
+          </div>
+        )}
+      </div>
+      <BottomBar onBack={onBack} label={bothNowDone?"Done — back to catch up list":"Catch Up"} sublabel={dateLabel} color={kid.color} />
+    </div>
+  );
+}
+
+
+// ─── SessionReview ────────────────────────────────────────────────────────────
+function SessionReview({ kidId, dateStr, progress, onBack }) {
+  const kid = KIDS[kidId];
+  const kp = progress[kidId] || {};
+  const entry = kp[dateStr] || {};
+  const di = Math.max(0, Math.floor((new Date(dateStr) - new Date('2026-06-02')) / 86400000));
+  const pair = PAIRS[kidId][di % PAIRS[kidId].length];
+  const stageN = di < 14 ? 1 : di < 28 ? 2 : 3;
+  const dt = new Date(dateStr);
+  const dateLabel = dt.toLocaleDateString("en-US", {weekday:"long", month:"long", day:"numeric", year:"numeric"});
+
+  const stepColors = { recall:"#6366F1", why:"#F59E0B", connect:"#10B981", teach:"#EC4899", rate:"#8B5CF6" };
+  const stepLabels = { recall:"🧠 Recall", why:"💡 Explain Why", connect:"🔗 Connect", teach:"📣 Teach It", rate:"⭐ Self-Rate" };
+  const rateLabels = ["", "Still fuzzy", "Getting it", "Got it"];
+  const rateColors = ["", "#EF4444", "#F59E0B", "#22C55E"];
+
+  return (
+    <div style={{flex:1, display:"flex", flexDirection:"column", minHeight:0}}>
+      <div style={{background:"#0F172A", padding:"48px 20px 20px", flexShrink:0}}>
+        <p style={{fontSize:11, color:"rgba(255,255,255,0.5)", fontFamily:"sans-serif", letterSpacing:2, margin:"0 0 4px", textTransform:"uppercase"}}>Session Review</p>
+        <h2 style={{fontSize:22, fontWeight:700, color:"#fff", margin:"0 0 4px", fontFamily:kid.font}}>{kid.name}</h2>
+        <p style={{fontSize:13, color:"rgba(255,255,255,0.7)", fontFamily:"sans-serif", margin:0}}>{dateLabel}</p>
+        <p style={{fontSize:12, color:"rgba(255,255,255,0.5)", fontFamily:"sans-serif", margin:"4px 0 0"}}>{"Stage "+stageN+"  ·  Week "+(Math.floor(di/7)+1)}</p>
+      </div>
+      <div style={{flex:1, overflowY:"auto", padding:"16px 16px 20px"}}>
+
+        {pair.map((sub, si) => {
+          const isDone = si === 0 ? !!entry.subject_1_done : !!entry.subject_2_done;
+          const retention = si === 0 ? entry.subject_1_retention : entry.subject_2_retention;
+          const lesson = C[sub]?.stages?.[stageN];
+
+          return (
+            <div key={sub} style={{marginBottom:20}}>
+              <div style={{display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:10}}>
+                <div style={{display:"flex", alignItems:"center", gap:10}}>
+                  <span style={{fontSize:20}}>{C[sub]?.icon}</span>
+                  <p style={{fontSize:17, fontWeight:700, color:"var(--color-text-primary)", fontFamily:kid.font, margin:0}}>{sub}</p>
+                </div>
+                <span style={{background:isDone?"rgba(34,197,94,0.12)":"rgba(239,68,68,0.08)", color:isDone?"#16A34A":"#DC2626", border:"1px solid "+(isDone?"#22C55E":"#EF4444"), borderRadius:99, padding:"3px 12px", fontSize:11, fontFamily:"sans-serif", fontWeight:700}}>
+                  {isDone ? "Complete ✓" : "Not completed"}
+                </span>
+              </div>
+
+              {isDone && retention ? (
+                <div style={{display:"flex", flexDirection:"column", gap:10}}>
+                  {["recall","why","connect","teach"].map(stepId => {
+                    const stepData = retention[stepId];
+                    if (!stepData?.input) return null;
+                    const q = stepId === "recall" ? lesson?.recall
+                      : stepId === "why" ? lesson?.why
+                      : stepId === "connect" ? lesson?.connect?.[kidId] || lesson?.connect?.demo
+                      : lesson?.teach;
+                    return (
+                      <div key={stepId} style={{background:"var(--color-background-primary)", border:"1px solid var(--color-border-tertiary)", borderRadius:12, overflow:"hidden"}}>
+                        <div style={{background:stepColors[stepId], padding:"8px 14px", display:"flex", alignItems:"center", gap:8}}>
+                          <p style={{fontSize:12, fontWeight:700, color:"#fff", margin:0, fontFamily:"sans-serif"}}>{stepLabels[stepId]}</p>
+                        </div>
+                        {q && (
+                          <div style={{padding:"10px 14px 6px", borderBottom:"1px solid var(--color-border-tertiary)"}}>
+                            <p style={{fontSize:11, color:"var(--color-text-tertiary)", fontFamily:"sans-serif", margin:"0 0 2px", textTransform:"uppercase", letterSpacing:1}}>Question</p>
+                            <p style={{fontSize:12, color:"var(--color-text-secondary)", fontFamily:"sans-serif", margin:0, lineHeight:1.6, fontStyle:"italic"}}>{q}</p>
+                          </div>
+                        )}
+                        <div style={{padding:"10px 14px"}}>
+                          <p style={{fontSize:11, color:"var(--color-text-tertiary)", fontFamily:"sans-serif", margin:"0 0 4px", textTransform:"uppercase", letterSpacing:1}}>{kid.name+"'s Answer"}</p>
+                          <p style={{fontSize:13, color:"var(--color-text-primary)", fontFamily:"sans-serif", margin:0, lineHeight:1.7, whiteSpace:"pre-wrap"}}>{stepData.input}</p>
+                          {stepData.fb && (
+                            <div style={{marginTop:8, padding:"8px 10px", background:"rgba(99,102,241,0.06)", borderRadius:8, borderLeft:"3px solid "+stepColors[stepId]}}>
+                              <p style={{fontSize:11, color:"var(--color-text-tertiary)", margin:"0 0 2px", fontFamily:"sans-serif", textTransform:"uppercase", letterSpacing:1}}>AI Feedback</p>
+                              <p style={{fontSize:12, color:"var(--color-text-secondary)", fontFamily:"sans-serif", margin:0, lineHeight:1.6}}>{stepData.fb}</p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                  {retention.rate && (
+                    <div style={{background:"var(--color-background-primary)", border:"1px solid var(--color-border-tertiary)", borderRadius:12, padding:"12px 14px", display:"flex", alignItems:"center", gap:12}}>
+                      <span style={{fontSize:20}}>⭐</span>
+                      <div>
+                        <p style={{fontSize:11, color:"var(--color-text-tertiary)", margin:"0 0 2px", fontFamily:"sans-serif", textTransform:"uppercase", letterSpacing:1}}>Self-Rate</p>
+                        <p style={{fontSize:14, fontWeight:700, color:rateColors[retention.rate.score]||"var(--color-text-primary)", fontFamily:"sans-serif", margin:0}}>
+                          {rateLabels[retention.rate.score]||"Rated"}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : isDone && !retention ? (
+                <div style={{padding:"14px", background:"var(--color-background-secondary)", borderRadius:10}}>
+                  <p style={{fontSize:13, color:"var(--color-text-secondary)", fontFamily:"sans-serif", margin:0, fontStyle:"italic"}}>Session completed — no written retention data recorded.</p>
+                </div>
+              ) : (
+                <div style={{padding:"14px", background:"rgba(239,68,68,0.06)", borderRadius:10, border:"1px solid rgba(239,68,68,0.2)"}}>
+                  <p style={{fontSize:13, color:"#DC2626", fontFamily:"sans-serif", margin:0}}>This subject was not completed on this day.</p>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+      <BottomBar onBack={onBack} label={kid.name+" — Session Review"} sublabel={dateLabel} color="#0F172A" />
+    </div>
+  );
+}
+
 // ─── Root App ─────────────────────────────────────────────────────────────────
 export default function App() {
   const [splash, setSplash] = useState(true);
@@ -1265,6 +1547,10 @@ export default function App() {
   const [progress, setProgress] = useState({madison:{},garith:{},demo:{}});
   const [roadmapKid, setRoadmapKid] = useState(null);
   const [summaryKid, setSummaryKid] = useState(null);
+  const [catchupKid, setCatchupKid] = useState(null);
+  const [catchupDate, setCatchupDate] = useState(null);
+  const [reviewDate, setReviewDate] = useState(null);
+  const [reviewKid, setReviewKid] = useState(null);
   const [lastSync, setLastSync] = useState(null);
 
   useEffect(() => {
@@ -1284,7 +1570,28 @@ export default function App() {
   });
 
 
-  async function markDone(kidId, subject, correct, retention) {
+  async function markDoneForDate(kidId, dateStr, subject, correct, retention) {
+  if (kidId==="demo") return;
+  const dayIdxForDate = Math.max(0,Math.floor((new Date(dateStr)-SUMMER_START)/86400000));
+  const pairForDate = PAIRS[kidId][dayIdxForDate%PAIRS[kidId].length];
+  const kp = progress[kidId]||{};
+  const ex = kp[dateStr]||{};
+  const isFirst = subject===pairForDate[0];
+  const update = { subject_1:pairForDate[0], subject_2:pairForDate[1], stage:stageForDate(dateStr), week:Math.max(1,Math.floor(dayIdxForDate/7)+1) };
+  if(isFirst){update.subject_1_done=true;if(retention)update.subject_1_retention=retention;}
+  else{update.subject_2_done=true;if(retention)update.subject_2_retention=retention;}
+  const s1=isFirst?true:!!ex.subject_1_done;
+  const s2=isFirst?!!ex.subject_2_done:true;
+  if(s1&&s2) update.both_done=true;
+  const merged={...ex,...update};
+  const np={...progress,[kidId]:{...kp,[dateStr]:merged}};
+  setProgress(np);
+  await saveDay(kidId,dateStr,merged);
+  // reload to sync
+  loadProgress().then(p=>setProgress(p));
+}
+
+async function markDone(kidId, subject, correct, retention) {
     if (kidId==="demo") return;
     const today2=todayKey();
     const pair=todayPair(kidId);
@@ -1317,11 +1624,14 @@ export default function App() {
 
   if (screen==="kidpin") return wrap(<PinScreen title={KIDS[pinTarget]?.name+"'s Account"} subtitle="Enter your personal PIN." expected={PINS[pinTarget]} onOk={()=>{setActiveKid(pinTarget);setScreen(roadmapKid?"roadmap":"dash");}} onCancel={()=>{setPinTarget(null);setScreen("home");}}/>);
   if (screen==="parentpin") return wrap(<PinScreen title="Parent Access" subtitle="Enter your PIN to view the monitoring dashboard." expected={PINS.parent} onOk={()=>setScreen("parent")} onCancel={()=>setScreen("home")}/>);
-  if (screen==="parent") return wrap(<ParentDash progress={progress} lastSync={lastSync} onBack={()=>setScreen("home")} onRoadmap={kidId=>{setRoadmapKid(kidId);setScreen("roadmap");}} onWeeklySummary={kidId=>{setSummaryKid(kidId);setScreen("weekly");}}/>);
+  if (screen==="parent") return wrap(<ParentDash progress={progress} lastSync={lastSync} onBack={()=>setScreen("home")} onRoadmap={kidId=>{setRoadmapKid(kidId);setScreen("roadmap");}} onWeeklySummary={kidId=>{setSummaryKid(kidId);setScreen("weekly");}} onReview={(kidId,date)=>{setReviewKid(kidId);setReviewDate(date);setScreen("review");}}/>);
   if (screen==="roadmap"&&roadmapKid) return wrap(<Roadmap kidId={roadmapKid} progress={progress} onBack={()=>{if(activeKid){setScreen("dash");}else{setRoadmapKid(null);setScreen("parent");}}} onStartSession={()=>{setActiveKid(roadmapKid);setScreen("session");}}/>);
   if (screen==="weekly"&&summaryKid) return wrap(<WeeklySummary kidId={summaryKid} progress={progress} onBack={()=>{if(activeKid){setScreen("dash");}else{setScreen("parent");}}}/>);
-  if (screen==="dash"&&activeKid) return wrap(<KidDash kidId={activeKid} progress={progress} onBack={()=>{setScreen("home");setActiveKid(null);}} onSession={()=>setScreen("session")} onRoadmap={()=>{setRoadmapKid(activeKid);setScreen("roadmap");}} onWeeklySummary={()=>{setSummaryKid(activeKid);setScreen("weekly");}}/>);
+  if (screen==="dash"&&activeKid) return wrap(<KidDash kidId={activeKid} progress={progress} onBack={()=>{setScreen("home");setActiveKid(null);}} onSession={()=>setScreen("session")} onRoadmap={()=>{setRoadmapKid(activeKid);setScreen("roadmap");}} onWeeklySummary={()=>{setSummaryKid(activeKid);setScreen("weekly");}} onCatchUp={()=>setScreen("catchup_select")}/>);
   if (screen==="session"&&activeKid) return wrap(<Session kidId={activeKid} kidProg={progress[activeKid]||{}} onDone={(sub,correct,ret)=>markDone(activeKid,sub,correct,ret)} onBack={()=>setScreen("dash")}/>);
+  if (screen==="review"&&reviewKid&&reviewDate) return wrap(<SessionReview kidId={reviewKid} dateStr={reviewDate} progress={progress} onBack={()=>{setReviewDate(null);setScreen("parent");}} />);
+  if (screen==="catchup_select"&&activeKid) return wrap(<CatchUpSelect kidId={activeKid} progress={progress} onSelect={(date)=>{setCatchupDate(date);setScreen("catchup");}} onBack={()=>setScreen("dash")} />);
+  if (screen==="catchup"&&activeKid&&catchupDate) return wrap(<CatchUp kidId={activeKid} date={catchupDate} progress={progress} onDone={(sub,correct,ret)=>{markDoneForDate(activeKid,catchupDate,sub,correct,ret);}} onBack={()=>{setCatchupDate(null);setScreen("catchup_select");}} />);
 
   // ─── Home ──────────────────────────────────────────────────────────────────
   return wrap(
