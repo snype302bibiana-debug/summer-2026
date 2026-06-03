@@ -1126,7 +1126,7 @@ function DayDetail({ kidId, dayData, dateStr, onBack }) {
 }
 
 // ─── Parent Dashboard ─────────────────────────────────────────────────────────
-function ParentDash({ progress, lastSync, onBack, onRoadmap, onWeeklySummary, onReview }) {
+function ParentDash({ progress, lastSync, onBack, onRoadmap, onWeeklySummary, onReview, onHistory }) {
   const today = todayKey();
   const [selectedDay, setSelectedDay] = useState(null);
   const [selectedKid, setSelectedKid] = useState(null);
@@ -1193,6 +1193,13 @@ function ParentDash({ progress, lastSync, onBack, onRoadmap, onWeeklySummary, on
                   <p style={{fontSize:10,color:"var(--color-text-secondary)",fontFamily:"sans-serif",margin:0}}>Weekly summary →</p>
                 </button>
               </div>
+                {onHistory && <button onClick={()=>onHistory(kidId)} style={{display:"flex",alignItems:"center",gap:10,background:"var(--color-background-secondary)",border:"1px solid var(--color-border-secondary)",borderRadius:12,padding:"10px 12px",cursor:"pointer",textAlign:"left",marginTop:6}}>
+                  <span style={{fontSize:18}}>📚</span>
+                  <div>
+                    <p style={{fontSize:11,fontWeight:700,color:"var(--color-text-primary)",fontFamily:"sans-serif",margin:"0 0 1px"}}>Full Session History</p>
+                    <p style={{fontSize:10,color:"var(--color-text-secondary)",fontFamily:"sans-serif",margin:0}}>Every session · all answers →</p>
+                  </div>
+                </button>}
             );
           })}
         </div>
@@ -1538,6 +1545,126 @@ function SessionReview({ kidId, dateStr, progress, onBack }) {
   );
 }
 
+
+// ─── SessionHistory ───────────────────────────────────────────────────────────
+function SessionHistory({ kidId, progress, onReview, onBack }) {
+  const kid = KIDS[kidId];
+  const kp = progress[kidId] || {};
+
+  // Build full session list across the whole summer
+  const allSessions = [];
+  const start = new Date('2026-06-02');
+  const today = new Date(); today.setHours(0,0,0,0);
+
+  for (let d = new Date(start); d <= today; d.setDate(d.getDate()+1)) {
+    const k = d.toISOString().slice(0,10);
+    const entry = kp[k];
+    if (entry && (entry.subject_1_done || entry.subject_2_done)) {
+      const di = Math.max(0, Math.floor((new Date(k) - start) / 86400000));
+      const week = Math.floor(di/7) + 1;
+      const stage = di < 14 ? 1 : di < 28 ? 2 : 3;
+      const stageName = stage === 1 ? "Orientation" : stage === 2 ? "Foundation" : "Application";
+      allSessions.push({ date:k, entry, week, stage, stageName, di });
+    }
+  }
+
+  // Group by week
+  const byWeek = {};
+  allSessions.forEach(s => {
+    if (!byWeek[s.week]) byWeek[s.week] = [];
+    byWeek[s.week].push(s);
+  });
+  const weeks = Object.keys(byWeek).map(Number).sort((a,b) => b-a); // most recent first
+
+  const total = allSessions.length;
+  const both = allSessions.filter(s => s.entry.both_done).length;
+  const partial = total - both;
+
+  return (
+    <div style={{flex:1, display:"flex", flexDirection:"column", minHeight:0}}>
+      <div style={{background:"#0F172A", padding:"48px 20px 20px", flexShrink:0}}>
+        <p style={{fontSize:11, color:"rgba(255,255,255,0.5)", fontFamily:"sans-serif", letterSpacing:2, margin:"0 0 4px", textTransform:"uppercase"}}>Session History</p>
+        <h2 style={{fontSize:24, fontWeight:700, color:"#fff", margin:"0 0 4px", fontFamily:kid.font}}>{kid.name}</h2>
+        <p style={{fontSize:13, color:"rgba(255,255,255,0.7)", fontFamily:"sans-serif", margin:0}}>{"Jun 2 to Aug 15, 2026  ·  All sessions"}</p>
+        <div style={{display:"flex", gap:16, marginTop:12}}>
+          {[{l:"Total sessions",v:total},{l:"Both complete",v:both},{l:"Partial",v:partial}].map(s=>(
+            <div key={s.l} style={{background:"rgba(255,255,255,0.08)", borderRadius:8, padding:"8px 14px"}}>
+              <p style={{fontSize:20, fontWeight:700, color:"#fff", margin:"0 0 2px", fontFamily:"sans-serif"}}>{s.v}</p>
+              <p style={{fontSize:10, color:"rgba(255,255,255,0.55)", fontFamily:"sans-serif", margin:0, textTransform:"uppercase", letterSpacing:1}}>{s.l}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div style={{flex:1, overflowY:"auto", padding:"16px 16px 20px"}}>
+        {weeks.length === 0 && (
+          <div style={{textAlign:"center", padding:"40px 20px"}}>
+            <p style={{fontSize:32, margin:"0 0 12px"}}>📋</p>
+            <p style={{fontSize:17, fontWeight:700, color:"var(--color-text-primary)", fontFamily:kid.font, margin:"0 0 8px"}}>No sessions yet</p>
+            <p style={{fontSize:14, color:"var(--color-text-secondary)", fontFamily:"sans-serif"}}>Completed sessions will appear here.</p>
+          </div>
+        )}
+
+        {weeks.map(week => {
+          const sessions = byWeek[week];
+          const stage = sessions[0].stage;
+          const stageName = sessions[0].stageName;
+          return (
+            <div key={week} style={{marginBottom:20}}>
+              <div style={{display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:8}}>
+                <div style={{display:"flex", alignItems:"center", gap:10}}>
+                  <div style={{width:32, height:32, borderRadius:"50%", background:kid.color, display:"flex", alignItems:"center", justifyContent:"center"}}>
+                    <span style={{fontSize:12, fontWeight:700, color:"#fff", fontFamily:"sans-serif"}}>{week}</span>
+                  </div>
+                  <div>
+                    <p style={{fontSize:14, fontWeight:700, color:"var(--color-text-primary)", fontFamily:"sans-serif", margin:0}}>{"Week "+week}</p>
+                    <p style={{fontSize:11, color:"var(--color-text-secondary)", fontFamily:"sans-serif", margin:0}}>{"Stage "+stage+": "+stageName+"  ·  "+sessions.length+" session"+(sessions.length!==1?"s":"")}</p>
+                  </div>
+                </div>
+                <div style={{background:kid.light, borderRadius:99, padding:"3px 12px"}}>
+                  <span style={{fontSize:11, fontWeight:700, color:kid.dark, fontFamily:"sans-serif"}}>{sessions.filter(s=>s.entry.both_done).length+"/"+sessions.length+" complete"}</span>
+                </div>
+              </div>
+
+              {sessions.map(({date, entry, di}) => {
+                const pair = PAIRS[kidId][di % PAIRS[kidId].length];
+                const dt = new Date(date);
+                const dayLabel = dt.toLocaleDateString("en-US", {weekday:"short", month:"short", day:"numeric"});
+                const s1 = !!entry.subject_1_done;
+                const s2 = !!entry.subject_2_done;
+                const both = s1 && s2;
+                const hasAnswers = !!(entry.subject_1_retention || entry.subject_2_retention);
+
+                return (
+                  <button key={date} onClick={()=>onReview(kidId, date)} style={{display:"flex", alignItems:"center", gap:12, width:"100%", background:"var(--color-background-primary)", border:"1.5px solid "+(both?"#22C55E":"#F59E0B"), borderRadius:12, padding:"12px 16px", marginBottom:8, cursor:"pointer", textAlign:"left"}}>
+                    <div style={{width:40, height:40, borderRadius:"50%", background:both?"rgba(34,197,94,0.12)":"rgba(245,158,11,0.1)", border:"2px solid "+(both?"#22C55E":"#F59E0B"), display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0}}>
+                      <span style={{fontSize:16}}>{both?"✓":"½"}</span>
+                    </div>
+                    <div style={{flex:1}}>
+                      <p style={{fontSize:14, fontWeight:600, color:"var(--color-text-primary)", margin:"0 0 3px", fontFamily:"sans-serif"}}>{dayLabel}</p>
+                      <div style={{display:"flex", gap:6, flexWrap:"wrap"}}>
+                        {pair.map((sub,i)=>{
+                          const done = i===0?s1:s2;
+                          return <span key={sub} style={{background:done?"rgba(34,197,94,0.1)":"var(--color-background-secondary)", color:done?"#16A34A":"var(--color-text-tertiary)", border:"1px solid "+(done?"#22C55E":"var(--color-border-tertiary)"), borderRadius:99, padding:"2px 8px", fontSize:11, fontFamily:"sans-serif"}}>{(done?"✓ ":"")+sub}</span>
+                        })}
+                      </div>
+                    </div>
+                    <div style={{display:"flex", flexDirection:"column", alignItems:"flex-end", gap:4, flexShrink:0}}>
+                      {hasAnswers && <span style={{fontSize:10, color:kid.color, fontFamily:"sans-serif", fontWeight:600}}>HAS ANSWERS</span>}
+                      <span style={{fontSize:18, color:kid.color}}>→</span>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          );
+        })}
+      </div>
+      <BottomBar onBack={onBack} label={kid.name+" — Session History"} sublabel={"All sessions · Jun 2 to Aug 15"} color="#0F172A" />
+    </div>
+  );
+}
+
 // ─── Root App ─────────────────────────────────────────────────────────────────
 export default function App() {
   const [splash, setSplash] = useState(true);
@@ -1551,6 +1678,7 @@ export default function App() {
   const [catchupDate, setCatchupDate] = useState(null);
   const [reviewDate, setReviewDate] = useState(null);
   const [reviewKid, setReviewKid] = useState(null);
+  const [historyKid, setHistoryKid] = useState(null);
   const [lastSync, setLastSync] = useState(null);
 
   useEffect(() => {
@@ -1624,11 +1752,13 @@ async function markDone(kidId, subject, correct, retention) {
 
   if (screen==="kidpin") return wrap(<PinScreen title={KIDS[pinTarget]?.name+"'s Account"} subtitle="Enter your personal PIN." expected={PINS[pinTarget]} onOk={()=>{setActiveKid(pinTarget);setScreen(roadmapKid?"roadmap":"dash");}} onCancel={()=>{setPinTarget(null);setScreen("home");}}/>);
   if (screen==="parentpin") return wrap(<PinScreen title="Parent Access" subtitle="Enter your PIN to view the monitoring dashboard." expected={PINS.parent} onOk={()=>setScreen("parent")} onCancel={()=>setScreen("home")}/>);
-  if (screen==="parent") return wrap(<ParentDash progress={progress} lastSync={lastSync} onBack={()=>setScreen("home")} onRoadmap={kidId=>{setRoadmapKid(kidId);setScreen("roadmap");}} onWeeklySummary={kidId=>{setSummaryKid(kidId);setScreen("weekly");}} onReview={(kidId,date)=>{setReviewKid(kidId);setReviewDate(date);setScreen("review");}}/>);
+  if (screen==="parent") return wrap(<ParentDash progress={progress} lastSync={lastSync} onBack={()=>setScreen("home")} onRoadmap={kidId=>{setRoadmapKid(kidId);setScreen("roadmap");}} onWeeklySummary={kidId=>{setSummaryKid(kidId);setScreen("weekly");}} onReview={(kidId,date)=>{setReviewKid(kidId);setReviewDate(date);setScreen("review");}} onHistory={kidId=>{setHistoryKid(kidId);setScreen("history");}}/>);
   if (screen==="roadmap"&&roadmapKid) return wrap(<Roadmap kidId={roadmapKid} progress={progress} onBack={()=>{if(activeKid){setScreen("dash");}else{setRoadmapKid(null);setScreen("parent");}}} onStartSession={()=>{setActiveKid(roadmapKid);setScreen("session");}}/>);
   if (screen==="weekly"&&summaryKid) return wrap(<WeeklySummary kidId={summaryKid} progress={progress} onBack={()=>{if(activeKid){setScreen("dash");}else{setScreen("parent");}}}/>);
   if (screen==="dash"&&activeKid) return wrap(<KidDash kidId={activeKid} progress={progress} onBack={()=>{setScreen("home");setActiveKid(null);}} onSession={()=>setScreen("session")} onRoadmap={()=>{setRoadmapKid(activeKid);setScreen("roadmap");}} onWeeklySummary={()=>{setSummaryKid(activeKid);setScreen("weekly");}} onCatchUp={()=>setScreen("catchup_select")}/>);
   if (screen==="session"&&activeKid) return wrap(<Session kidId={activeKid} kidProg={progress[activeKid]||{}} onDone={(sub,correct,ret)=>markDone(activeKid,sub,correct,ret)} onBack={()=>setScreen("dash")}/>);
+  if (screen==="history"&&historyKid) return wrap(<SessionHistory kidId={historyKid} progress={progress} onReview={(kidId,date)=>{setReviewKid(kidId);setReviewDate(date);setScreen("review_from_history");}} onBack={()=>{setHistoryKid(null);setScreen("parent");}} />);
+  if (screen==="review_from_history"&&reviewKid&&reviewDate) return wrap(<SessionReview kidId={reviewKid} dateStr={reviewDate} progress={progress} onBack={()=>{setReviewDate(null);setScreen("history");}} />);
   if (screen==="review"&&reviewKid&&reviewDate) return wrap(<SessionReview kidId={reviewKid} dateStr={reviewDate} progress={progress} onBack={()=>{setReviewDate(null);setScreen("parent");}} />);
   if (screen==="catchup_select"&&activeKid) return wrap(<CatchUpSelect kidId={activeKid} progress={progress} onSelect={(date)=>{setCatchupDate(date);setScreen("catchup");}} onBack={()=>setScreen("dash")} />);
   if (screen==="catchup"&&activeKid&&catchupDate) return wrap(<CatchUp kidId={activeKid} date={catchupDate} progress={progress} onDone={(sub,correct,ret)=>{markDoneForDate(activeKid,catchupDate,sub,correct,ret);}} onBack={()=>{setCatchupDate(null);setScreen("catchup_select");}} />);
